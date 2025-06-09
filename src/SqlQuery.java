@@ -34,7 +34,18 @@ public class SqlQuery {
         prestm.close();
 
     }
-    public void updateQuery(){
+    public void updateQuery(int num,String[] str) throws SQLException {
+        PreparedStatement prestm=m_conn.prepareStatement(str[0]);
+        if(num>1){
+            for(int i=1;i<num;i++){
+                prestm.setString(i,str[i]);
+            }
+        }
+        int affectRows=prestm.executeUpdate();
+        //对这个返回行结果进行判断处理
+
+        //关闭资源
+        prestm.close();
 
     }
 
