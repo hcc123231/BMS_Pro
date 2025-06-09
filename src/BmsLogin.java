@@ -1,11 +1,34 @@
+import org.w3c.dom.ls.LSOutput;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.SQLException;
+import java.sql.SQLOutput;
 
 public class BmsLogin {
     public BmsLogin(){
         frmGlobal=new JFrame("登录");
         pnGlobal=new JPanel();
         btnLogin=new JButton("登录");
+        btnLogin.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("clicked");
+                String account =edtAccount.getText();
+                String password=edtPassword.getText();
+                SqlQuery query=new SqlQuery();
+                query.mysqlConnect();
+                String sql="select uid from user where account=? and password=?";
+                try {
+                    query.selectQuery(3,new String[]{sql,account,password});
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        });
         btnRegister=new JButton(("注册"));
         pnButtn=new JPanel();
 

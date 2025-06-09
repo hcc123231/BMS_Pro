@@ -2,9 +2,13 @@ import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
+        //测试案例
+        //首先将登录界面显示出来
         BmsLogin login=new BmsLogin();
+        //然后获取登录信息
+
+        //最后就可以查询数据库了
+
     }
 }
 
