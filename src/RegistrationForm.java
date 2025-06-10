@@ -60,7 +60,7 @@ public class RegistrationForm extends JFrame {
         emailField = new JTextField();
         formPanel.add(emailField);
 
-        // 学号/工号
+        // 学号
         formPanel.add(new JLabel("学号/工号:"));
         studentIdField = new JTextField();
         formPanel.add(studentIdField);
