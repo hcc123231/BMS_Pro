@@ -12,6 +12,7 @@ public class LibrarySystemMainUI extends JFrame {
     private User currentUser;
     private Connection conn;
     private static final Logger logger = Logger.getLogger(LibrarySystemMainUI.class.getName());
+    private BookManagerPanel bookManagerPanel; // 添加对图书管理面板的引用
 
     public LibrarySystemMainUI(String username, String role) {
         setTitle("校园图书管理系统");
@@ -27,7 +28,7 @@ public class LibrarySystemMainUI extends JFrame {
     private void connectToDatabase() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            String url = "jdbc:mysql://localhost:3306/book_db?useSSL=false&serverTimezone=UTC";
+            String url = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
             String dbUser = "root";
             String dbPass = "Lqf123000@";
             conn = DriverManager.getConnection(url, dbUser, dbPass);
@@ -160,6 +161,15 @@ public class LibrarySystemMainUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
+        // 当选择"图书管理"时，创建BookManagerPanel实例
+        if ("图书管理".equals(functionName)) {
+            if (bookManagerPanel == null) {
+                bookManagerPanel = new BookManagerPanel(conn);
+            }
+            return bookManagerPanel;
+        }
+
+        // 其他功能的默认面板
         JLabel titleLabel = new JLabel(functionName);
         titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
