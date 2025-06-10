@@ -14,15 +14,11 @@ public class BorrowManagementUI extends JFrame {
 
     // 标签页和面板
     private JTabbedPane tabbedPane;
-    private JPanel panelBorrow, panelReturn, panelHistory;
+    private JPanel panelBorrow, panelHistory;
 
     // 借阅登记组件
     private JTextField txtBookId, txtUserId, txtBorrowDate, txtDueDate;
     private JButton btnBorrow;
-
-    // 归还处理组件
-    private JTextField txtRecordId, txtReturnDate;
-    private JButton btnReturn;
 
     // 借阅记录组件
     private JTable tableHistory;
@@ -43,12 +39,10 @@ public class BorrowManagementUI extends JFrame {
 
         // 初始化面板
         initBorrowPanel();
-        initReturnPanel();
         initHistoryPanel();
 
-        // 添加面板到标签页
+        // 添加面板到标签页（移除了归还处理面板）
         tabbedPane.addTab("借阅登记", panelBorrow);
-        tabbedPane.addTab("归还处理", panelReturn);
         tabbedPane.addTab("借阅记录", panelHistory);
 
         add(tabbedPane, BorderLayout.CENTER);
@@ -143,69 +137,6 @@ public class BorrowManagementUI extends JFrame {
 
         // 按钮事件
         btnBorrow.addActionListener(e -> processBorrow());
-    }
-
-    // 初始化归还处理面板
-    private void initReturnPanel() {
-        panelReturn = new JPanel();
-        panelReturn.setBackground(Color.WHITE);
-        panelReturn.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15, 20, 15, 20);
-        gbc.anchor = GridBagConstraints.WEST;
-
-        // 标题
-        JLabel lblTitle = new JLabel("归还处理");
-        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 22));
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
-        panelReturn.add(lblTitle, gbc);
-
-        // 记录ID
-        gbc.gridwidth = 1;
-        gbc.anchor = GridBagConstraints.EAST;
-        JLabel lblRecordId = new JLabel("记录ID:");
-        lblRecordId.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panelReturn.add(lblRecordId, gbc);
-
-        gbc.anchor = GridBagConstraints.WEST;
-        txtRecordId = new JTextField(15);
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        panelReturn.add(txtRecordId, gbc);
-
-        // 归还日期
-        gbc.anchor = GridBagConstraints.EAST;
-        JLabel lblReturnDate = new JLabel("归还日期:");
-        lblReturnDate.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        panelReturn.add(lblReturnDate, gbc);
-
-        gbc.anchor = GridBagConstraints.WEST;
-        txtReturnDate = new JTextField(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        panelReturn.add(txtReturnDate, gbc);
-
-        // 确认归还按钮
-        btnReturn = new JButton("确认归还");
-        btnReturn.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        btnReturn.setForeground(Color.WHITE);
-        btnReturn.setBackground(new Color(49, 130, 206));
-        btnReturn.setPreferredSize(new Dimension(120, 35));
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        gbc.anchor = GridBagConstraints.CENTER;
-        panelReturn.add(btnReturn, gbc);
-
-        // 按钮事件
-        btnReturn.addActionListener(e -> processReturn());
     }
 
     // 初始化借阅记录面板
@@ -355,107 +286,6 @@ public class BorrowManagementUI extends JFrame {
         }
     }
 
-    // 处理归还
-    // ... 已有代码 ...
-    private void processReturn() {
-        String recordId = txtRecordId.getText().trim();
-        String returnDate = txtReturnDate.getText().trim();
-
-        // 非空校验
-        if (recordId.isEmpty() || returnDate.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请填写所有字段！", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // 数字校验
-        try {
-            Integer.parseInt(recordId);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "记录ID必须是数字！", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // 日期校验
-        try {
-            LocalDate.parse(returnDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "日期格式错误！应为 yyyy-MM-dd", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // 数据库操作
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // 检查记录状态
-            String sqlCheck = "SELECT status, book_id, due_date FROM borrow_records WHERE record_id = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
-                pstmt.setInt(1, Integer.parseInt(recordId));
-                ResultSet rs = pstmt.executeQuery();
-                if (!rs.next() || !"借阅中".equals(rs.getString("status"))) {
-                    JOptionPane.showMessageDialog(this, "记录不存在或已归还！", "错误", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                int bookId = rs.getInt("book_id");
-                String dueDate = rs.getString("due_date");
-
-                // 计算罚金
-                LocalDate dueDateObj = LocalDate.parse(dueDate);
-                LocalDate returnDateObj = LocalDate.parse(returnDate);
-                double fine = 0.0;
-                // 扩大 overdueDays 变量的作用域
-                long overdueDays = 0;
-                if (returnDateObj.isAfter(dueDateObj)) {
-                    overdueDays = returnDateObj.toEpochDay() - dueDateObj.toEpochDay();
-                    fine = overdueDays * 0.5; // 每天0.5元罚金
-                }
-
-                // 开始事务
-                conn.setAutoCommit(false);
-                try {
-                    // 更新借阅记录
-                    String sqlUpdateRecord = "UPDATE borrow_records " +
-                            "SET return_date = ?, status = '已归还', fine = ? " +
-                            "WHERE record_id = ?";
-                    try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdateRecord)) {
-                        pstmtUpdate.setString(1, returnDate);
-                        pstmtUpdate.setDouble(2, fine);
-                        pstmtUpdate.setInt(3, Integer.parseInt(recordId));
-                        pstmtUpdate.executeUpdate();
-                    }
-
-                    // 更新图书库存
-                    String sqlUpdateBook = "UPDATE books " +
-                            "SET available_quantity = available_quantity + 1 " +
-                            "WHERE id = ?";
-                    try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdateBook)) {
-                        pstmtUpdate.setInt(1, bookId);
-                        pstmtUpdate.executeUpdate();
-                    }
-
-                    conn.commit();
-                    if (fine > 0) {
-                        JOptionPane.showMessageDialog(this,
-                                "归还成功！逾期" + overdueDays + "天，需缴纳罚金：" + fine + "元",
-                                "成功", JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this, "归还成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                    }
-
-                    clearReturnForm();
-                    loadHistory(); // 刷新记录
-                } catch (SQLException e) {
-                    conn.rollback();
-                    throw e;
-                } finally {
-                    conn.setAutoCommit(true);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
     // 加载所有借阅记录
     private void loadHistory() {
         modelHistory.setRowCount(0); // 清空表格
@@ -540,12 +370,6 @@ public class BorrowManagementUI extends JFrame {
         txtUserId.setText("");
         txtBorrowDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         txtDueDate.setText(LocalDate.now().plusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-    }
-
-    // 清空归还表单
-    private void clearReturnForm() {
-        txtRecordId.setText("");
-        txtReturnDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     }
 
     // 主方法测试
