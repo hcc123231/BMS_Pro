@@ -64,7 +64,7 @@ public class BmsLogin {
         pnPassword.add(edtPassword);
 
         pnButtn.setLayout(blButtn);
-        pnButtn.add(Box.createHorizontalStrut(100));
+        pnButtn.add(Box.createHorizontalStrut(150));
         pnButtn.add(btnLogin);
         pnButtn.add(Box.createHorizontalStrut(100));
         pnButtn.add(btnRegister);
