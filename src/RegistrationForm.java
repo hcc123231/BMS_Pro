@@ -10,8 +10,9 @@ public class RegistrationForm extends JFrame {
     private JComboBox<String> roleComboBox;
     private JButton registerButton, resetButton;
     private JLabel messageLabel;
-
-    public RegistrationForm() {
+    JFrame m_frmGlobal;
+    public RegistrationForm(JFrame frmGlobal) {
+        m_frmGlobal=frmGlobal;
         // 设置窗口标题
         setTitle("校园图书管理系统 - 注册");
         // 设置窗口大小
@@ -163,11 +164,12 @@ public class RegistrationForm extends JFrame {
             }else if(ret==0){
                 messageLabel.setText("注册成功！请登录");
                 // 注册成功后可以延迟关闭窗口或跳转到登录页面
-                Timer timer = new Timer(2000, new ActionListener() {
+                Timer timer = new Timer(1000, new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         dispose();
                         // 这里可以添加跳转到登录页面的代码
+                        m_frmGlobal.setVisible(true);
 
                     }
                 });

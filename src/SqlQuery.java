@@ -26,6 +26,7 @@ public class SqlQuery {
             }
         }
         ResultSet result=prestm.executeQuery();
+        System.out.println("sql:"+prestm.toString());
         if(result.next()){
             result.close();
             prestm.close();
@@ -35,6 +36,30 @@ public class SqlQuery {
         result.close();
         prestm.close();
         return 0;
+    }
+    public String[] selectQueryLogin(int num,String[] str) throws SQLException {
+        //传进来的第一个参数一定是sql语句，而后跟着的是sql语句中的参数
+        PreparedStatement prestm=m_conn.prepareStatement(str[0]);
+        System.out.println("enter select query");
+        if(num>1){
+            for(int i=1;i<num;i++){
+                prestm.setString(i,str[i]);
+            }
+        }
+        ResultSet result=prestm.executeQuery();
+        System.out.println("sql:"+prestm.toString());
+        String[] ret=new String[2];
+        if(result.next()){
+            ret[0]=result.getString("account");
+            ret[1]=result.getString("chara");
+            result.close();
+            prestm.close();
+            return ret;
+        }
+        //关闭资源
+        result.close();
+        prestm.close();
+        return null;
     }
     public int updateQuery(int num,String[] str) throws SQLException {
         PreparedStatement prestm=m_conn.prepareStatement(str[0]);

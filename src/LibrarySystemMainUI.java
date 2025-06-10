@@ -20,11 +20,14 @@ public class LibrarySystemMainUI extends JFrame {
         setLocationRelativeTo(null);
 
         currentUser = new User(username, role);
-        connectToDatabase();
+        //connectToDatabase();
+        SqlQuery query=new SqlQuery();
+        query.mysqlConnect();
+
         initializeMainUI();
     }
 
-    private void connectToDatabase() {
+    /*private void connectToDatabase() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             String url = "jdbc:mysql://localhost:3306/book_db?useSSL=false&serverTimezone=UTC";
@@ -37,7 +40,7 @@ public class LibrarySystemMainUI extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "数据库连接失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
         }
-    }
+    }*/
 
     private void initializeMainUI() {
         getContentPane().removeAll();
@@ -63,7 +66,7 @@ public class LibrarySystemMainUI extends JFrame {
         leftNav.add(title, gbc);
         gbc.gridy++;
 
-        if (currentUser.getRole().equals("管理员")) {
+        if (currentUser.getRole().equals("2")) {
             createAdminMenus();
         } else {
             createUserMenus();

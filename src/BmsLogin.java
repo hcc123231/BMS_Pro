@@ -1,5 +1,5 @@
 import org.w3c.dom.ls.LSOutput;
-
+//登录类，弹出登录界面
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -34,7 +34,7 @@ public class BmsLogin {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("clicked register");
-                RegistrationForm registerInterface=new RegistrationForm();
+                RegistrationForm registerInterface=new RegistrationForm(frmGlobal);
                 frmGlobal.setVisible(false);
                 registerInterface.setVisible(true);
             }
@@ -89,14 +89,14 @@ public class BmsLogin {
         frmGlobal.setResizable(false);
         frmGlobal.setVisible(true);
     }
-    private JFrame frmGlobal;//登录界面的全局框架
+    public JFrame frmGlobal;//登录界面的全局框架
     private JPanel pnGlobal;
-    private JButton btnLogin;//登录界面的登录按钮
-    private JButton btnRegister;//登录界面的注册按钮
+    public JButton btnLogin;//登录界面的登录按钮
+    public JButton btnRegister;//登录界面的注册按钮
     private JPanel pnButtn;
 
-    private JEditorPane edtAccount;
-    private JEditorPane edtPassword;
+    public JEditorPane edtAccount;
+    public JEditorPane edtPassword;
     private JLabel labAccount;
     private JLabel labPassword;
     private JPanel pnAccount;
