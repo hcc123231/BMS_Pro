@@ -41,7 +41,7 @@ public class RegistrationForm extends JFrame {
         formPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         // 用户名
-        formPanel.add(new JLabel("用户名:"));
+        formPanel.add(new JLabel("账号:"));
         usernameField = new JTextField();
         formPanel.add(usernameField);
 
@@ -56,9 +56,9 @@ public class RegistrationForm extends JFrame {
         formPanel.add(confirmPasswordField);
 
         // 邮箱
-        formPanel.add(new JLabel("邮箱:"));
+        /*formPanel.add(new JLabel("邮箱:"));
         emailField = new JTextField();
-        formPanel.add(emailField);
+        formPanel.add(emailField);*/
 
         // 学号
         formPanel.add(new JLabel("学号/工号:"));
@@ -116,15 +116,21 @@ public class RegistrationForm extends JFrame {
     }
 
     private void registerUser() {
-        String username = usernameField.getText().trim();
+        String account = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
-        String email = emailField.getText().trim();
-        String studentId = studentIdField.getText().trim();
+        String number = studentIdField.getText().trim();
         String role = (String) roleComboBox.getSelectedItem();
-
+        String chara="0";
+        if(role=="学生"){
+            chara="0";
+        }else if(role=="教师"){
+            chara="1";
+        }else if(role=="管理员"){
+            chara="2";
+        }
         // 验证输入
-        if (username.isEmpty() || password.isEmpty() || email.isEmpty() || studentId.isEmpty()) {
+        if (account.isEmpty() || password.isEmpty()  || number.isEmpty()) {
             messageLabel.setText("请填写所有必填字段");
             return;
         }
@@ -134,51 +140,39 @@ public class RegistrationForm extends JFrame {
             return;
         }
 
-        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            messageLabel.setText("请输入有效的邮箱地址");
-            return;
-        }
+
 
         // 连接数据库
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/bms_db", "root", "2028915986hcc")) {
-
+        try {
+            SqlQuery query=new SqlQuery();
+            query.mysqlConnect();
             // 检查用户名是否已存在
-            String checkQuery = "SELECT * FROM users WHERE username = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(checkQuery)) {
-                pstmt.setString(1, username);
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        messageLabel.setText("用户名已存在");
-                        return;
-                    }
-                }
+            String checkQuery = "SELECT * FROM user WHERE account = ?";
+            int res=query.selectQuery(2,new String[]{checkQuery,account});
+            if(res==1){
+                messageLabel.setText("用户名已存在");
+                return;
             }
 
             // 插入用户数据
-            String insertQuery = "INSERT INTO users (username, password, email, student_id, role) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement pstmt = conn.prepareStatement(insertQuery)) {
-                pstmt.setString(1, username);
-                pstmt.setString(2, password);
-                pstmt.setString(3, email);
-                pstmt.setString(4, studentId);
-                pstmt.setString(5, role);
+            String insertQuery = "INSERT INTO user (account, password, number, chara) VALUES (?, ?, ?, ?)";
 
-                int rowsInserted = pstmt.executeUpdate();
-                if (rowsInserted > 0) {
-                    messageLabel.setText("注册成功！请登录");
-                    // 注册成功后可以延迟关闭窗口或跳转到登录页面
-                    Timer timer = new Timer(2000, new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            dispose();
-                            // 这里可以添加跳转到登录页面的代码
-                        }
-                    });
-                    timer.setRepeats(false);
-                    timer.start();
-                } else {
-                    messageLabel.setText("注册失败，请重试");
-                }
+            int ret=query.updateQuery(5,new String[]{insertQuery,account,password,number,chara});
+            if(ret==1){
+                messageLabel.setText("注册失败，请重试");
+            }else if(ret==0){
+                messageLabel.setText("注册成功！请登录");
+                // 注册成功后可以延迟关闭窗口或跳转到登录页面
+                Timer timer = new Timer(2000, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        dispose();
+                        // 这里可以添加跳转到登录页面的代码
+
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -195,7 +189,7 @@ public class RegistrationForm extends JFrame {
         messageLabel.setText("");
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         // 在事件调度线程上创建和显示GUI
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -204,5 +198,5 @@ public class RegistrationForm extends JFrame {
                 form.setVisible(true);
             }
         });
-    }
+    }*/
 }    

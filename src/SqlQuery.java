@@ -16,7 +16,7 @@ public class SqlQuery {
         return m_conn;
     }
 
-    public void selectQuery(int num,String[] str) throws SQLException {
+    public int selectQuery(int num,String[] str) throws SQLException {
         //传进来的第一个参数一定是sql语句，而后跟着的是sql语句中的参数
         PreparedStatement prestm=m_conn.prepareStatement(str[0]);
         System.out.println("enter select query");
@@ -26,26 +26,34 @@ public class SqlQuery {
             }
         }
         ResultSet result=prestm.executeQuery();
-        while(result.next()){
-            System.out.println("111");
+        if(result.next()){
+            result.close();
+            prestm.close();
+            return 1;
         }
         //关闭资源
         result.close();
         prestm.close();
-
+        return 0;
     }
-    public void updateQuery(int num,String[] str) throws SQLException {
+    public int updateQuery(int num,String[] str) throws SQLException {
         PreparedStatement prestm=m_conn.prepareStatement(str[0]);
         if(num>1){
             for(int i=1;i<num;i++){
                 prestm.setString(i,str[i]);
             }
         }
+        System.out.println("sql:"+prestm.toString());
         int affectRows=prestm.executeUpdate();
         //对这个返回行结果进行判断处理
+        if(affectRows>0){
+            prestm.close();
+            return 0;
+        }
 
         //关闭资源
         prestm.close();
+        return 1;
 
     }
 
