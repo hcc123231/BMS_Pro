@@ -5,7 +5,7 @@ import java.awt.event.ActionListener;
 import java.sql.*;
 
 public class RegistrationForm extends JFrame {
-    private JTextField usernameField, emailField, studentIdField;
+    private JTextField usernameField;
     private JPasswordField passwordField, confirmPasswordField;
     private JComboBox<String> roleComboBox;
     private JButton registerButton, resetButton;
@@ -14,8 +14,8 @@ public class RegistrationForm extends JFrame {
     public RegistrationForm() {
         // 设置窗口标题
         setTitle("校园图书管理系统 - 注册");
-        // 设置窗口大小
-        setSize(500, 450);
+        // 设置窗口大小（略微缩小，因为减少了字段）
+        setSize(450, 380);
         // 设置窗口关闭操作
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // 设置窗口居中显示
@@ -36,7 +36,7 @@ public class RegistrationForm extends JFrame {
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createVerticalStrut(20));
 
-        // 创建表单面板
+        // 创建表单面板（减少了行数）
         JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 15));
         formPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
@@ -55,19 +55,9 @@ public class RegistrationForm extends JFrame {
         confirmPasswordField = new JPasswordField();
         formPanel.add(confirmPasswordField);
 
-        // 邮箱
-        formPanel.add(new JLabel("邮箱:"));
-        emailField = new JTextField();
-        formPanel.add(emailField);
-
-        // 学号
-        formPanel.add(new JLabel("学号/工号:"));
-        studentIdField = new JTextField();
-        formPanel.add(studentIdField);
-
-        // 用户角色
+        // 用户角色 - 仅包含普通用户和管理员
         formPanel.add(new JLabel("用户角色:"));
-        String[] roles = {"学生", "教师", "管理员"};
+        String[] roles = {"普通用户", "管理员"};
         roleComboBox = new JComboBox<>(roles);
         formPanel.add(roleComboBox);
 
@@ -119,23 +109,16 @@ public class RegistrationForm extends JFrame {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
-        String email = emailField.getText().trim();
-        String studentId = studentIdField.getText().trim();
         String role = (String) roleComboBox.getSelectedItem();
 
-        // 验证输入
-        if (username.isEmpty() || password.isEmpty() || email.isEmpty() || studentId.isEmpty()) {
-            messageLabel.setText("请填写所有必填字段");
+        // 验证输入（仅验证用户名和密码）
+        if (username.isEmpty() || password.isEmpty()) {
+            messageLabel.setText("请填写用户名和密码");
             return;
         }
 
         if (!password.equals(confirmPassword)) {
             messageLabel.setText("两次输入的密码不一致");
-            return;
-        }
-
-        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            messageLabel.setText("请输入有效的邮箱地址");
             return;
         }
 
@@ -154,14 +137,12 @@ public class RegistrationForm extends JFrame {
                 }
             }
 
-            // 插入用户数据
-            String insertQuery = "INSERT INTO users (username, password, email, student_id, role) VALUES (?, ?, ?, ?, ?)";
+            // 插入用户数据（移除了email和student_id字段）
+            String insertQuery = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(insertQuery)) {
                 pstmt.setString(1, username);
                 pstmt.setString(2, password);
-                pstmt.setString(3, email);
-                pstmt.setString(4, studentId);
-                pstmt.setString(5, role);
+                pstmt.setString(3, role);
 
                 int rowsInserted = pstmt.executeUpdate();
                 if (rowsInserted > 0) {
@@ -190,8 +171,6 @@ public class RegistrationForm extends JFrame {
         usernameField.setText("");
         passwordField.setText("");
         confirmPasswordField.setText("");
-        emailField.setText("");
-        studentIdField.setText("");
         messageLabel.setText("");
     }
 
@@ -205,4 +184,4 @@ public class RegistrationForm extends JFrame {
             }
         });
     }
-}    
+}
