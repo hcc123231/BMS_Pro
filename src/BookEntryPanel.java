@@ -10,15 +10,16 @@ import java.sql.SQLException;
 
 public class BookEntryPanel extends JPanel {
     // MySQL 数据库连接信息（修改为你的实际配置）
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
+    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Lqf123000@";
-
+    private static final String DB_PASSWORD = "Lqf123000@";*/
+    private SqlQuery m_query;
     // Swing 组件
     private JTextField txtISBN, txtTitle, txtAuthor, txtPublisher, txtYear, txtTotal, txtAvailable;
     private JComboBox<String> cmbCategory;
 
-    public BookEntryPanel() {
+    public BookEntryPanel(SqlQuery query) {
+        m_query=query;
         // 设置面板背景色
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
@@ -83,7 +84,11 @@ public class BookEntryPanel extends JPanel {
         btnSubmit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                saveBookToDB(); // 点击按钮时执行“写入数据库”逻辑
+                try {
+                    saveBookToDB(); // 点击按钮时执行“写入数据库”逻辑
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
 
@@ -166,7 +171,7 @@ public class BookEntryPanel extends JPanel {
     }
 
     // 【关键】将表单数据写入 MySQL 数据库
-    private void saveBookToDB() {
+    private void saveBookToDB() throws SQLException {
         // 1. 获取表单输入（trim() 去除首尾空格）
         String isbn = txtISBN.getText().trim();
         String title = txtTitle.getText().trim();
@@ -200,10 +205,19 @@ public class BookEntryPanel extends JPanel {
         }
 
         // 3. JDBC 连接数据库并插入数据
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+        String sql = "INSERT INTO bookinfo (isbn, bname, author, publisher, publication_year,category, available,ref_cnt) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+        m_query.mysqlConnect();
+        int affectedRows=m_query.updateQuery(9,new String[]{sql,isbn,title,author,publisher,yearStr,category,"1","0"});
+        if (affectedRows > 0) {
+            JOptionPane.showMessageDialog(this, "图书录入成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            clearForm(); // 清空表单，方便继续录入
+        } else {
+            JOptionPane.showMessageDialog(this, "录入失败，请重试！", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
             // SQL：使用 ? 占位符防止 SQL 注入，修改为匹配 bookinfo 表结构
-            String sql = "INSERT INTO bookinfo (isbn, bname, author, category, publication_year, available, ref_cnt, entry_date) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // 设置 SQL 参数（与 ? 顺序对应）
@@ -237,7 +251,7 @@ public class BookEntryPanel extends JPanel {
             // 数据库异常（如：ISBN 重复、连接失败）
             JOptionPane.showMessageDialog(this, "数据库错误：" + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace(); // 控制台打印详细错误（调试用）
-        }
+        }*/
     }
 
     // 清空表单内容
@@ -253,7 +267,7 @@ public class BookEntryPanel extends JPanel {
     }
 
     // 测试入口：启动图书录入窗口
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("图书录入 - 校园图书管理系统");
             BookEntryPanel entryPanel = new BookEntryPanel();
@@ -263,5 +277,5 @@ public class BookEntryPanel extends JPanel {
             frame.setLocationRelativeTo(null); // 居中显示
             frame.setVisible(true);
         });
-    }
+    }*/
 }

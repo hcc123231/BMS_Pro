@@ -79,19 +79,22 @@ public class BookManagerPanel extends JPanel {
     // 加载所有图书
     private void loadBooks() throws SQLException {
         tableModel.setRowCount(0);
+        m_query.mysqlConnect();
         String sql = "select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo limit 10 offset 0";
         ResultSet rset = m_query.selectQuery(1, new String[]{sql});
         while (rset.next()) {
+            String availableStatus = rset.getInt("available") == 1 ? "可借阅" : "已借出";
             tableModel.addRow(new Object[]{
                     rset.getInt("bid"),
                     rset.getString("bname"),
                     rset.getString("category"),
                     rset.getString("author"),
-                    rset.getString("available"),
+                    availableStatus,
                     rset.getInt("ref_cnt"),
                     rset.getDate("entry_date")
             });
         }
+        m_query.mysqlDisconnect();
     }
 
     // 搜索图书
@@ -124,7 +127,7 @@ public class BookManagerPanel extends JPanel {
                     rset.getDate("entry_date")
             });
         }
-
+        m_query.mysqlDisconnect();
     }
 
     // 修改图书
@@ -136,7 +139,7 @@ public class BookManagerPanel extends JPanel {
         }
 
         int bid = (int) tableModel.getValueAt(selectedRow, 0);
-        new BookModifyDialog((JFrame) SwingUtilities.getWindowAncestor(this), m_query.m_conn, bid).setVisible(true);
+        new BookModifyDialog((JFrame) SwingUtilities.getWindowAncestor(this), m_query, bid).setVisible(true);
         loadBooks(); // 修改后刷新表格
     }
 
@@ -163,13 +166,14 @@ public class BookManagerPanel extends JPanel {
                 logger.severe("删除图书失败: " );
                 JOptionPane.showMessageDialog(this, "删除图书失败", "错误", JOptionPane.ERROR_MESSAGE);
             }
+            m_query.mysqlDisconnect();
 
         }
     }
 }
 
 // 添加图书对话框
-class BookAddDialog extends JDialog {
+/*class BookAddDialog extends JDialog {
     private JTextField nameField, categoryField, authorField;
     private Connection conn;
 
@@ -230,17 +234,18 @@ class BookAddDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "添加图书失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
-}
+}*/
 
 // 修改图书对话框
 class BookModifyDialog extends JDialog {
     private JTextField nameField, categoryField, authorField, statusField;
     private Connection conn;
     private int bookId;
-
-    public BookModifyDialog(JFrame parent, Connection conn, int bookId) {
+    SqlQuery m_query;
+    public BookModifyDialog(JFrame parent, SqlQuery query, int bookId) throws SQLException {
         super(parent, "修改图书信息", true);
-        this.conn = conn;
+        m_query=query;
+        //this.conn = conn;
         this.bookId = bookId;
         setLayout(new GridLayout(7, 2));
         setSize(400, 350);
@@ -280,27 +285,31 @@ class BookModifyDialog extends JDialog {
         loadBookInfo();
 
         // 绑定事件
-        saveButton.addActionListener(e -> updateBook());
+        saveButton.addActionListener(e -> {
+            try {
+                updateBook();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         cancelButton.addActionListener(e -> dispose());
     }
 
-    private void loadBookInfo() {
-        try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM books WHERE bid = ?")) {
-            pstmt.setInt(1, bookId);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                nameField.setText(rs.getString("bname"));
-                categoryField.setText(rs.getString("category"));
-                authorField.setText(rs.getString("author"));
-                statusField.setText(rs.getString("status"));
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "加载图书信息失败", "错误", JOptionPane.ERROR_MESSAGE);
+    private void loadBookInfo() throws SQLException {
+        String sql="select * from bookinfo where bid=?";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(2,new String[]{sql,String.valueOf(bookId)});
+        if (rset.next()) {
+            nameField.setText(rset.getString("bname"));
+            categoryField.setText(rset.getString("category"));
+            authorField.setText(rset.getString("author"));
+            statusField.setText(rset.getString("available"));
         }
+        m_query.mysqlDisconnect();
+
     }
 
-    private void updateBook() {
+    private void updateBook() throws SQLException {
         String name = nameField.getText().trim();
         String category = categoryField.getText().trim();
         String author = authorField.getText().trim();
@@ -310,20 +319,16 @@ class BookModifyDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "请填写完整信息", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        try (PreparedStatement pstmt = conn.prepareStatement(
-                "UPDATE books SET bname = ?, category = ?, author = ?, status = ? WHERE bid = ?")) {
-            pstmt.setString(1, name);
-            pstmt.setString(2, category);
-            pstmt.setString(3, author);
-            pstmt.setString(4, status);
-            pstmt.setInt(5, bookId);
-            pstmt.executeUpdate();
+        String sql="update bookinfo set bname=?,category=?,author=?,available=? where bid=?";
+        m_query.mysqlConnect();
+        int affectRows=m_query.updateQuery(6,new String[]{sql,name,category,author,status,String.valueOf(bookId)});
+        if(affectRows>=1){
             JOptionPane.showMessageDialog(this, "图书信息更新成功", "成功", JOptionPane.INFORMATION_MESSAGE);
             dispose();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "更新图书信息失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        }else{
+            JOptionPane.showMessageDialog(this, "更新图书信息失败: " , "错误", JOptionPane.ERROR_MESSAGE);
         }
+        m_query.mysqlDisconnect();
+
     }
 }

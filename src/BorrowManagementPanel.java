@@ -8,14 +8,14 @@ import java.time.format.DateTimeFormatter;
 
 public class BorrowManagementPanel extends JPanel {
     // MySQL 配置
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
+    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的密码";
+    private static final String DB_PASSWORD = "你的密码";*/
 
     // 标签页和面板
     private JTabbedPane tabbedPane;
     private JPanel panelBorrow, panelHistory;
-
+    private SqlQuery m_query;
     // 借阅登记组件
     private JTextField txtBookId, txtUserId, txtBorrowDate, txtDueDate;
     private JButton btnBorrow;
@@ -26,8 +26,9 @@ public class BorrowManagementPanel extends JPanel {
     private JTextField txtSearch;
     private JButton btnSearch, btnRefresh;
 
-    public BorrowManagementPanel() {
+    public BorrowManagementPanel(SqlQuery query) throws SQLException {
         setBackground(Color.WHITE);
+        m_query=query;
         setLayout(new BorderLayout());
 
         // 初始化标签页
@@ -133,11 +134,17 @@ public class BorrowManagementPanel extends JPanel {
         panelBorrow.add(btnBorrow, gbc);
 
         // 按钮事件
-        btnBorrow.addActionListener(e -> processBorrow());
+        btnBorrow.addActionListener(e -> {
+            try {
+                processBorrow();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 
     // 初始化借阅记录面板
-    private void initHistoryPanel() {
+    private void initHistoryPanel() throws SQLException {
         panelHistory = new JPanel();
         panelHistory.setBackground(Color.WHITE);
         panelHistory.setLayout(new BorderLayout(10, 10));
@@ -187,15 +194,27 @@ public class BorrowManagementPanel extends JPanel {
         panelHistory.add(scrollPane, BorderLayout.CENTER);
 
         // 按钮事件
-        btnSearch.addActionListener(e -> searchRecords());
-        btnRefresh.addActionListener(e -> loadHistory());
+        btnSearch.addActionListener(e -> {
+            try {
+                searchRecords();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+        btnRefresh.addActionListener(e -> {
+            try {
+                loadHistory();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
 
         // 初始化加载记录
         loadHistory();
     }
 
     // 处理借阅
-    private void processBorrow() {
+    private void processBorrow() throws SQLException {
         String bookId = txtBookId.getText().trim();
         String userId = txtUserId.getText().trim();
         String borrowDate = txtBorrowDate.getText().trim();
@@ -226,7 +245,16 @@ public class BorrowManagementPanel extends JPanel {
         }
 
         // 数据库操作
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+        m_query.mysqlConnect();
+        try {
+            m_query.borrowManagerTransaction(bookId,userId,borrowDate,dueDate);
+            JOptionPane.showMessageDialog(this,"成功借阅","操作提示",JOptionPane.INFORMATION_MESSAGE);
+        }catch (SQLException e){
+            JOptionPane.showMessageDialog(this, "借阅失败：" + e.getMessage(), "错误提示", JOptionPane.ERROR_MESSAGE);
+        }
+
+
+        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
             conn.setAutoCommit(false); // 开启事务
             try {
                 // 检查图书是否可借
@@ -280,45 +308,39 @@ public class BorrowManagementPanel extends JPanel {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }
+        }*/
     }
 
     // 加载所有借阅记录
-    private void loadHistory() {
+    private void loadHistory() throws SQLException {
         modelHistory.setRowCount(0); // 清空表格
+        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid order by B.start_date";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(1,new String[]{sql});
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT br.record_id, br.book_id, b.title, br.user_id, br.borrow_date, " +
-                    "br.due_date, br.return_date, br.status, br.fine " +
-                    "FROM borrow_records br " +
-                    "JOIN books b ON br.book_id = b.id " +
-                    "ORDER BY br.borrow_date DESC";
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
+        while (rset.next()) {
+            rset.getInt("available");
 
-                while (rs.next()) {
-                    modelHistory.addRow(new Object[]{
-                            rs.getInt("record_id"),
-                            rs.getInt("book_id"),
-                            rs.getString("title"),
-                            rs.getInt("user_id"),
-                            rs.getString("borrow_date"),
-                            rs.getString("due_date"),
-                            rs.getString("return_date"),
-                            rs.getString("status"),
-                            rs.getDouble("fine")
-                    });
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "加载记录失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            modelHistory.addRow(new Object[]{
+                    rset.getInt("id"),
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getInt("uid"),
+                    rset.getString("start_date"),
+                    rset.getString("end_date"),
+                    rset.getString("practical_date"),
+                    rset.getInt("available")==1?"可借阅":"已借出",
+                    "000"
+            });
         }
+        m_query.mysqlDisconnect();
+
     }
 
     // 搜索视频频借阅记录
-    private void searchRecords() {
+    private void searchRecords() throws SQLException {
+        //搜索默认支持书名和用户id查找和图书id
         String keyword = txtSearch.getText().trim();
         modelHistory.setRowCount(0); // 清空表格
 
@@ -326,39 +348,24 @@ public class BorrowManagementPanel extends JPanel {
             loadHistory(); // 关键词为空时加载全部
             return;
         }
-
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT br.record_id, br.book_id, b.title, br.user_id, br.borrow_date, " +
-                    "br.due_date, br.return_date, br.status, br.fine " +
-                    "FROM borrow_records br " +
-                    "JOIN books b ON br.book_id = b.id " +
-                    "WHERE b.title LIKE ? OR CAST(br.user_id AS CHAR) LIKE ? " +
-                    "ORDER BY br.borrow_date DESC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, "%" + keyword + "%");
-                pstmt.setString(2, "%" + keyword + "%");
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        modelHistory.addRow(new Object[]{
-                                rs.getInt("record_id"),
-                                rs.getInt("book_id"),
-                                rs.getString("title"),
-                                rs.getInt("user_id"),
-                                rs.getString("borrow_date"),
-                                rs.getString("due_date"),
-                                rs.getString("return_date"),
-                                rs.getString("status"),
-                                rs.getDouble("fine")
-                        });
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "搜索记录失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        String param="%"+keyword+"%";
+        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where B.uid like ? or A.bname like ? or B.bid like ? order by B.start_date";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(4,new String[]{sql,param,param,param});
+        while (rset.next()) {
+            modelHistory.addRow(new Object[]{
+                    rset.getInt("id"),
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getInt("uid"),
+                    rset.getString("start_date"),
+                    rset.getString("end_date"),
+                    rset.getString("practical_date"),
+                    rset.getInt("available")==1?"可借阅":"已借出",
+                    "000"
+            });
         }
+
     }
 
     // 清空借阅表单
@@ -370,7 +377,7 @@ public class BorrowManagementPanel extends JPanel {
     }
 
     // 主方法测试
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("借阅管理 - 校园图书管理系统");
             BorrowManagementPanel panel = new BorrowManagementPanel();
@@ -380,5 +387,5 @@ public class BorrowManagementPanel extends JPanel {
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
-    }
+    }*/
 }

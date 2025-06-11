@@ -5,6 +5,7 @@ import java.awt.event.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 
 public class ReturnManagementPanel extends JPanel {
@@ -20,9 +21,11 @@ public class ReturnManagementPanel extends JPanel {
     private JTable tableRecords;
     private DefaultTableModel modelRecords;
     private JTextField txtSearch;
+    private SqlQuery m_query;
 
-    public ReturnManagementPanel() {
+    public ReturnManagementPanel(SqlQuery query) throws SQLException {
         setBackground(Color.WHITE);
+        m_query = query;
         setLayout(new BorderLayout());
 
         initComponents();
@@ -50,14 +53,26 @@ public class ReturnManagementPanel extends JPanel {
         btnSearch.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnSearch.setForeground(Color.WHITE);
         btnSearch.setBackground(new Color(49, 130, 206));
-        btnSearch.addActionListener(e -> searchBorrowedRecords());
+        btnSearch.addActionListener(e -> {
+            try {
+                searchBorrowedRecords();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         searchPanel.add(btnSearch);
 
         btnRefresh = new JButton("刷新");
         btnRefresh.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.setBackground(new Color(170, 170, 170));
-        btnRefresh.addActionListener(e -> loadBorrowedRecords());
+        btnRefresh.addActionListener(e -> {
+            try {
+                loadBorrowedRecords();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         searchPanel.add(btnRefresh);
 
         // 中间表格区域
@@ -144,45 +159,36 @@ public class ReturnManagementPanel extends JPanel {
     }
 
     // 加载所有未归还的借阅记录
-    private void loadBorrowedRecords() {
+    private void loadBorrowedRecords() throws SQLException {
         modelRecords.setRowCount(0); // 清空表格
+        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.available=0 order by B.start_date";
+        m_query.mysqlConnect();
+        ResultSet rset = m_query.selectQuery(1, new String[]{sql});
+        while (rset.next()) {
+            Date endDate = rset.getDate("end_date");
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT br.record_id, br.book_id, b.title, br.user_id, br.borrow_date, " +
-                    "br.due_date, DATEDIFF(CURDATE(), br.due_date) AS overdue_days, " +
-                    "DATEDIFF(CURDATE(), br.due_date) * 0.5 AS fine " +
-                    "FROM borrow_records br " +
-                    "JOIN books b ON br.book_id = b.id " +
-                    "WHERE br.status = '借阅中' " +
-                    "ORDER BY br.due_date ASC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
-
-                while (rs.next()) {
-                    int overdueDays = rs.getInt("overdue_days");
-                    double fine = Math.max(0, overdueDays * 0.5); // 逾期天数为负时罚金为0
-
-                    modelRecords.addRow(new Object[]{
-                            rs.getInt("record_id"),
-                            rs.getInt("book_id"),
-                            rs.getString("title"),
-                            rs.getInt("user_id"),
-                            rs.getString("borrow_date"),
-                            rs.getString("due_date"),
-                            overdueDays > 0 ? overdueDays : "未逾期",
-                            fine > 0 ? String.format("%.2f元", fine) : "无"
-                    });
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "加载借阅记录失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            LocalDate endLocalDate = endDate.toLocalDate();
+            LocalDate currentLocalDate=LocalDate.now();
+            long overdueDays = ChronoUnit.DAYS.between(endLocalDate, currentLocalDate);
+            //double fine = Math.max(0, overdueDays * 0.5); // 逾期天数为负时罚金为0
+            double fine = 0;
+            modelRecords.addRow(new Object[]{
+                    rset.getInt("id"),
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getInt("uid"),
+                    rset.getString("start_date"),
+                    rset.getString("end_date"),
+                    overdueDays > 0 ? overdueDays : "未逾期",
+                    fine > 0 ? String.format("%.2f元", fine) : "无"
+            });
         }
+        m_query.mysqlDisconnect();
+
     }
 
     // 搜索一个未归还的借阅记录
-    private void searchBorrowedRecords() {
+    private void searchBorrowedRecords() throws SQLException {
         String keyword = txtSearch.getText().trim();
         modelRecords.setRowCount(0); // 清空表格
 
@@ -190,43 +196,30 @@ public class ReturnManagementPanel extends JPanel {
             loadBorrowedRecords(); // 关键词为空时加载全部
             return;
         }
+        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.available=0 and B.id like ? or B.bid like ? or B.uid like ? or A.bname like ? order by B.start_date";
+        m_query.mysqlConnect();
+        String param = "%" + keyword + "%";
+        ResultSet rset = m_query.selectQuery(5, new String[]{sql, param, param, param, param});
+        while (rset.next()) {
+            Date endDate = rset.getDate("end_date");
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT br.record_id, br.book_id, b.title, br.user_id, br.borrow_date, " +
-                    "br.due_date, DATEDIFF(CURDATE(), br.due_date) AS overdue_days, " +
-                    "DATEDIFF(CURDATE(), br.due_date) * 0.5 AS fine " +
-                    "FROM borrow_records br " +
-                    "JOIN books b ON br.book_id = b.id " +
-                    "WHERE br.status = '借阅中' " +
-                    "AND (b.title LIKE ? OR CAST(br.user_id AS CHAR) LIKE ?) " +
-                    "ORDER BY br.due_date ASC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, "%" + keyword + "%");
-                pstmt.setString(2, "%" + keyword + "%");
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        int overdueDays = rs.getInt("overdue_days");
-                        double fine = Math.max(0, overdueDays * 0.5); // 逾期天数为负时罚金为0
-
-                        modelRecords.addRow(new Object[]{
-                                rs.getInt("record_id"),
-                                rs.getInt("book_id"),
-                                rs.getString("title"),
-                                rs.getInt("user_id"),
-                                rs.getString("borrow_date"),
-                                rs.getString("due_date"),
-                                overdueDays > 0 ? overdueDays : "未逾期",
-                                fine > 0 ? String.format("%.2f元", fine) : "无"
-                        });
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "搜索借阅记录失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            LocalDate endLocalDate = endDate.toLocalDate();
+            LocalDate currentLocalDate=LocalDate.now();
+            long overdueDays = ChronoUnit.DAYS.between(endLocalDate, currentLocalDate);
+            //double fine = Math.max(0, overdueDays * 0.5); // 逾期天数为负时罚金为0
+            double fine = 0;
+            modelRecords.addRow(new Object[]{
+                    rset.getInt("id"),
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getInt("uid"),
+                    rset.getString("start_date"),
+                    rset.getString("end_date"),
+                    overdueDays > 0 ? overdueDays : "未逾期",
+                    fine > 0 ? String.format("%.2f元", fine) : "无"
+            });
         }
+        m_query.mysqlDisconnect();
     }
 
     // 处理归还操作
@@ -257,7 +250,21 @@ public class ReturnManagementPanel extends JPanel {
         }
 
         // 数据库操作
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+        m_query.mysqlConnect();
+        try{
+            m_query.returnTransaction(recordId,returnDate);
+            // 清空表单并刷新记录
+            txtRecordId.setText("");
+            loadBorrowedRecords();
+            JOptionPane.showMessageDialog(this,"成功归还","操作提示",JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "归还失败：" + e.getMessage(), "错误提示", JOptionPane.ERROR_MESSAGE);
+        }
+
+
+
+
+        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
             conn.setAutoCommit(false); // 开启事务
             try {
                 // 检查记录状态
@@ -343,11 +350,12 @@ public class ReturnManagementPanel extends JPanel {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }
+        }*/
     }
+}
 
     // 测试入口
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("图书归还管理 - 校园图书管理系统");
             ReturnManagementPanel panel = new ReturnManagementPanel();
@@ -358,4 +366,4 @@ public class ReturnManagementPanel extends JPanel {
             frame.setVisible(true);
         });
     }
-}
+}*/

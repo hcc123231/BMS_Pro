@@ -189,7 +189,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("图书录入".equals(functionName)){
             System.out.println("图书录入lab clicked");
             if(bookEntryPanel==null){
-                bookEntryPanel=new BookEntryPanel();
+                bookEntryPanel=new BookEntryPanel(m_query);
                 bookEntryPanel.setVisible(true);
             }
             return bookEntryPanel;
@@ -197,7 +197,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("借阅管理".equals(functionName)){
             System.out.println("借阅管理 clicked");
             if(borrowManagementPanel==null){
-                borrowManagementPanel=new BorrowManagementPanel();
+                borrowManagementPanel=new BorrowManagementPanel(m_query);
                 borrowManagementPanel.setVisible(true);
             }
             return borrowManagementPanel;
@@ -205,7 +205,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("归还管理".equals(functionName)){
             System.out.println("归还管理 clicked");
             if(returnManagementPanel==null){
-                returnManagementPanel=new ReturnManagementPanel();
+                returnManagementPanel=new ReturnManagementPanel(m_query);
                 returnManagementPanel.setVisible(true);
             }
             return returnManagementPanel;

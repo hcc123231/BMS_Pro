@@ -159,9 +159,9 @@ public class RegistrationForm extends JFrame {
             String insertQuery = "INSERT INTO user (account, password, number, chara) VALUES (?, ?, ?, ?)";
 
             int ret=query.updateQuery(5,new String[]{insertQuery,account,password,number,chara});
-            if(ret==1){
+            if(ret<=0){
                 messageLabel.setText("注册失败，请重试");
-            }else if(ret==0){
+            }else if(ret==1){
                 messageLabel.setText("注册成功！请登录");
                 // 注册成功后可以延迟关闭窗口或跳转到登录页面
                 Timer timer = new Timer(1000, new ActionListener() {
