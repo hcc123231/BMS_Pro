@@ -4,35 +4,34 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.*;
 import java.util.logging.Logger;
-
 //主界面
 public class LibrarySystemMainUI extends JFrame {
     private JPanel rightContent;
     private JPanel leftNav;
     private GridBagConstraints gbc;
-    private final User currentUser; // 添加final修饰符
-    private final Connection conn; // 添加final修饰符
+    private User currentUser;
+    //private Connection conn;
+    private SqlQuery m_query;
     private static final Logger logger = Logger.getLogger(LibrarySystemMainUI.class.getName());
-    private BookManagerPanel bookManagerPanel; // 图书管理面板
-    private BookEntryPanel bookEntryPanel; // 图书录入面板
-    private BorrowManagementPanel borrowManagementPanel; // 借阅管理面板
-    private ReturnManagementPanel returnManagementPanel; // 归还管理面板
-    private ReservationManagerPanel reservationManagerPanel; // 预约管理面板
-    private UserManagementPanel userManagementPanel; // 用户管理面板
-    private StatsAnalysisPanel statsAnalysisPanel; // 统计分析面板
-    private BookSearchPanel bookSearchPanel; // 图书检索面板
-    private MyBorrowPanel myBorrowPanel; // 我的借阅面板
-    private UserInfoPanel userInfoPanel; // 个人信息面板（新增）
+    private BookManagerPanel bookManagerPanel; // 添加对图书管理面板的引用
+    private BookEntryPanel bookEntryPanel;
+    private BorrowManagementPanel borrowManagementPanel;
+    private ReturnManagementPanel returnManagementPanel;
+    private ReservationManagerPanel reservationManagerPanel;
+    private UserManagementPanel userManagementPanel;
+    private StatsAnalysisPanel statsAnalysisPanel;
+    private BookSearchPanel bookSearchPanel;
 
-    public LibrarySystemMainUI(String username, String role) {
+    public LibrarySystemMainUI(String username, String role,SqlQuery query) {
         setTitle("校园图书管理系统");
         setSize(1280, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         currentUser = new User(username, role);
-        SqlQuery query=new SqlQuery();
-        conn=query.mysqlConnect();
+        //connectToDatabase();
+        m_query=query;
+
 
         initializeMainUI();
     }
@@ -147,7 +146,11 @@ public class LibrarySystemMainUI extends JFrame {
                     clearMenuHighlights();
                     menuLabel.setBackground(new Color(64, 69, 82));
                     rightContent.removeAll();
-                    rightContent.add(createFunctionPanel(text), BorderLayout.CENTER);
+                    try {
+                        rightContent.add(createFunctionPanel(text), BorderLayout.CENTER);
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
                     rightContent.revalidate();
                     rightContent.repaint();
                 }
@@ -169,7 +172,7 @@ public class LibrarySystemMainUI extends JFrame {
         }
     }
 
-    private JPanel createFunctionPanel(String functionName) {
+    private JPanel createFunctionPanel(String functionName) throws SQLException {
         System.out.println("enter createFunctionPanel");
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
@@ -178,7 +181,7 @@ public class LibrarySystemMainUI extends JFrame {
         if ("图书管理".equals(functionName)) {
             System.out.println("equals-'图书管理'");
             if (bookManagerPanel == null) {
-                bookManagerPanel = new BookManagerPanel(conn);
+                bookManagerPanel = new BookManagerPanel(m_query);
                 bookManagerPanel.setVisible(true);
             }
             return bookManagerPanel;
@@ -210,7 +213,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("预约管理".equals(functionName)){
             System.out.println("预约管理 clicked");
             if(reservationManagerPanel==null){
-                reservationManagerPanel=new ReservationManagerPanel(conn);
+                reservationManagerPanel=new ReservationManagerPanel(m_query.m_conn);
                 reservationManagerPanel.setVisible(true);
             }
             return reservationManagerPanel;
@@ -239,20 +242,7 @@ public class LibrarySystemMainUI extends JFrame {
             }
             return bookSearchPanel;
         }
-        else if ("我的借阅".equals(functionName)) {
-            System.out.println("我的借阅 clicked");
-            if (myBorrowPanel == null) {
-                myBorrowPanel = new MyBorrowPanel(conn, currentUser.getUsername());
-            }
-            return myBorrowPanel;
-        }
-        else if ("个人信息".equals(functionName)) {
-            System.out.println("个人信息 clicked");
-            if (userInfoPanel == null) {
-                userInfoPanel = new UserInfoPanel(conn, currentUser.getUsername());
-            }
-            return userInfoPanel;
-        }
+
 
         // 其他功能的默认面板
         JLabel titleLabel = new JLabel(functionName);
@@ -267,18 +257,7 @@ public class LibrarySystemMainUI extends JFrame {
         return panel;
     }
 
-    // 供外部启动（如登录后调用），替代原 main 直接创建
-    public static void start(String username, String role) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception e) {
-                logger.severe("设置外观失败: " + e.getMessage());
-                e.printStackTrace();
-            }
-            new LibrarySystemMainUI(username, role).setVisible(true);
-        });
-    }
+
 
     // 用户类
     private static class User {

@@ -7,13 +7,14 @@ import javax.swing.table.DefaultTableModel;
 
 public class BookManagerPanel extends JPanel {
     private static final Logger logger = Logger.getLogger(BookManagerPanel.class.getName());
-    private final Connection conn;  // 标记为final，确保不可变
+    //private final Connection conn;  // 标记为final，确保不可变
+    private SqlQuery m_query;
     private JTable bookTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
 
-    public BookManagerPanel(Connection conn) {
-        this.conn = conn;
+    public BookManagerPanel(SqlQuery query) throws SQLException {
+        m_query=query;
         setLayout(new BorderLayout());
         initComponents();
         loadBooks(); // 初始化时加载图书数据
@@ -24,14 +25,14 @@ public class BookManagerPanel extends JPanel {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         searchField = new JTextField(20);
         JButton searchButton = new JButton("搜索");
-        JButton addButton = new JButton("添加图书");
+        //JButton addButton = new JButton("添加图书");
         JButton modifyButton = new JButton("修改图书");
         JButton deleteButton = new JButton("删除图书");
 
         searchPanel.add(new JLabel("搜索:"));
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
-        searchPanel.add(addButton);
+        //searchPanel.add(addButton);
         searchPanel.add(modifyButton);
         searchPanel.add(deleteButton);
 
@@ -51,36 +52,50 @@ public class BookManagerPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         // 4. 绑定事件
-        searchButton.addActionListener(e -> searchBooks());
-        addButton.addActionListener(e -> new BookAddDialog((JFrame) SwingUtilities.getWindowAncestor(this), conn).setVisible(true));
-        modifyButton.addActionListener(e -> modifyBook());
-        deleteButton.addActionListener(e -> deleteBook());
+        searchButton.addActionListener(e -> {
+            try {
+                searchBooks();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+        //addButton.addActionListener(e -> new BookAddDialog((JFrame) SwingUtilities.getWindowAncestor(this), m_query.m_conn).setVisible(true));
+        modifyButton.addActionListener(e -> {
+            try {
+                modifyBook();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+        deleteButton.addActionListener(e -> {
+            try {
+                deleteBook();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
 
     // 加载所有图书
-    private void loadBooks() {
+    private void loadBooks() throws SQLException {
         tableModel.setRowCount(0);
-        try (CallableStatement cstmt = conn.prepareCall("{call sp_get_all_books()}")) {
-            ResultSet rs = cstmt.executeQuery();
-            while (rs.next()) {
-                tableModel.addRow(new Object[]{
-                        rs.getInt("bid"),
-                        rs.getString("bname"),
-                        rs.getString("category"),
-                        rs.getString("author"),
-                        rs.getString("status"),
-                        rs.getInt("ref_cnt"),
-                        rs.getDate("entry_date")
-                });
-            }
-        } catch (SQLException ex) {
-            logger.severe("加载图书失败: " + ex.getMessage());
-            JOptionPane.showMessageDialog(this, "加载图书失败", "错误", JOptionPane.ERROR_MESSAGE);
+        String sql = "select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo limit 10 offset 0";
+        ResultSet rset = m_query.selectQuery(1, new String[]{sql});
+        while (rset.next()) {
+            tableModel.addRow(new Object[]{
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getString("category"),
+                    rset.getString("author"),
+                    rset.getString("available"),
+                    rset.getInt("ref_cnt"),
+                    rset.getDate("entry_date")
+            });
         }
     }
 
     // 搜索图书
-    private void searchBooks() {
+    private void searchBooks() throws SQLException {
         String keyword = searchField.getText().trim();
         if (keyword.isEmpty()) {
             loadBooks(); // 关键词为空时加载全部
@@ -88,28 +103,32 @@ public class BookManagerPanel extends JPanel {
         }
 
         tableModel.setRowCount(0);
-        try (CallableStatement cstmt = conn.prepareCall("{call sp_search_books(?)}")) {
-            cstmt.setString(1, keyword);
-            ResultSet rs = cstmt.executeQuery();
-            while (rs.next()) {
-                tableModel.addRow(new Object[]{
-                        rs.getInt("bid"),
-                        rs.getString("bname"),
-                        rs.getString("category"),
-                        rs.getString("author"),
-                        rs.getString("status"),
-                        rs.getInt("ref_cnt"),
-                        rs.getDate("entry_date")
-                });
-            }
-        } catch (SQLException ex) {
-            logger.severe("搜索图书失败: " + ex.getMessage());
-            JOptionPane.showMessageDialog(this, "搜索图书失败", "错误", JOptionPane.ERROR_MESSAGE);
+        String sql="select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo where "+
+                "bid like ? or "+
+                "bname like ? or "+
+                "category like ? or "+
+                "author like ? or "+
+                "available like ? or "+
+                "ref_cnt like ? or "+
+                "entry_date like ?";
+        String kw="%"+keyword+"%";
+        ResultSet rset=m_query.selectQuery(8,new String[]{sql,kw,kw,kw,kw,kw,kw,kw});
+        while (rset.next()) {
+            tableModel.addRow(new Object[]{
+                    rset.getInt("bid"),
+                    rset.getString("bname"),
+                    rset.getString("category"),
+                    rset.getString("author"),
+                    rset.getString("available"),
+                    rset.getInt("ref_cnt"),
+                    rset.getDate("entry_date")
+            });
         }
+
     }
 
     // 修改图书
-    private void modifyBook() {
+    private void modifyBook() throws SQLException {
         int selectedRow = bookTable.getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(this, "请选择要修改的图书", "提示", JOptionPane.WARNING_MESSAGE);
@@ -117,12 +136,12 @@ public class BookManagerPanel extends JPanel {
         }
 
         int bid = (int) tableModel.getValueAt(selectedRow, 0);
-        new BookModifyDialog((JFrame) SwingUtilities.getWindowAncestor(this), conn, bid).setVisible(true);
+        new BookModifyDialog((JFrame) SwingUtilities.getWindowAncestor(this), m_query.m_conn, bid).setVisible(true);
         loadBooks(); // 修改后刷新表格
     }
 
     // 删除图书
-    private void deleteBook() {
+    private void deleteBook() throws SQLException {
         int selectedRow = bookTable.getSelectedRow();
         if (selectedRow == -1) {
             JOptionPane.showMessageDialog(this, "请选择要删除的图书", "提示", JOptionPane.WARNING_MESSAGE);
@@ -132,18 +151,19 @@ public class BookManagerPanel extends JPanel {
         int bid = (int) tableModel.getValueAt(selectedRow, 0);
         int confirm = JOptionPane.showConfirmDialog(this, "确定删除？删除后不可恢复！", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            try (CallableStatement cstmt = conn.prepareCall("{call sp_delete_book(?)}")) {
-                cstmt.setInt(1, bid);
-                ResultSet rs = cstmt.executeQuery();
-                if (rs.next()) {
-                    String message = rs.getString("message");
-                    JOptionPane.showMessageDialog(this, message, "结果", JOptionPane.INFORMATION_MESSAGE);
-                    loadBooks(); // 删除后刷新表格
-                }
-            } catch (SQLException ex) {
-                logger.severe("删除图书失败: " + ex.getMessage());
+            String sql="delete from bookinfo where bid=?";
+            String sbid=String.valueOf(bid);
+            int affects=m_query.updateQuery(2,new String[]{sql,sbid});
+            System.out.println("delete affect num:"+affects);
+            if (affects==1) {
+
+                JOptionPane.showMessageDialog(this, "成功", "结果", JOptionPane.INFORMATION_MESSAGE);
+                loadBooks(); // 删除后刷新表格
+            }else{
+                logger.severe("删除图书失败: " );
                 JOptionPane.showMessageDialog(this, "删除图书失败", "错误", JOptionPane.ERROR_MESSAGE);
             }
+
         }
     }
 }

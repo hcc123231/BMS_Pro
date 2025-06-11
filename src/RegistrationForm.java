@@ -149,8 +149,8 @@ public class RegistrationForm extends JFrame {
             query.mysqlConnect();
             // 检查用户名是否已存在
             String checkQuery = "SELECT * FROM user WHERE account = ?";
-            int res=query.selectQuery(2,new String[]{checkQuery,account});
-            if(res==1){
+            ResultSet res=query.selectQuery(2,new String[]{checkQuery,account});
+            if(res.next()){
                 messageLabel.setText("用户名已存在");
                 return;
             }
