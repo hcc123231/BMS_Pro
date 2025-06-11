@@ -161,25 +161,34 @@ public class LibrarySystemMainUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
-        // 当选择"图书管理"时，创建BookManagerPanel实例
+        // 图书管理
         if ("图书管理".equals(functionName)) {
             if (bookManagerPanel == null) {
                 bookManagerPanel = new BookManagerPanel(conn);
             }
             return bookManagerPanel;
         }
+        // 预约管理
+        else if ("预约管理".equals(functionName)) {
+            return new ReservationManagerPanel(conn);
+        }
+        // 图书录入：返回 BookEntryPanel
+        else if ("图书录入".equals(functionName)) {
+            return new BookEntryUIPanel();
+        }
+        // 其他功能
+        else {
+            JLabel titleLabel = new JLabel(functionName);
+            titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
+            titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            panel.add(titleLabel, BorderLayout.NORTH);
 
-        // 其他功能的默认面板
-        JLabel titleLabel = new JLabel(functionName);
-        titleLabel.setFont(new Font("微软雅黑", Font.BOLD, 24));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        panel.add(titleLabel, BorderLayout.NORTH);
+            JLabel contentLabel = new JLabel(functionName + " 功能面板", SwingConstants.CENTER);
+            contentLabel.setFont(new Font("微软雅黑", Font.PLAIN, 18));
+            panel.add(contentLabel, BorderLayout.CENTER);
 
-        JLabel contentLabel = new JLabel(functionName + " 功能面板", SwingConstants.CENTER);
-        contentLabel.setFont(new Font("微软雅黑", Font.PLAIN, 18));
-        panel.add(contentLabel, BorderLayout.CENTER);
-
-        return panel;
+            return panel;
+        }
     }
 
     // 供外部启动（如登录后调用），替代原 main 直接创建

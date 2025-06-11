@@ -6,8 +6,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+// 假设 BookEntryPanel 在 com.example.library.ui 包中
 
-public class BookEntryUI extends JFrame {
+public class BookEntryUIPanel extends JPanel {
     // MySQL 数据库连接信息（修改为你的实际配置）
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
@@ -17,24 +18,16 @@ public class BookEntryUI extends JFrame {
     private JTextField txtISBN, txtTitle, txtAuthor, txtPublisher, txtYear, txtTotal, txtAvailable;
     private JComboBox<String> cmbCategory;
 
-    public BookEntryUI() {
-        // 1. 初始化窗口
-        setTitle("图书录入 - 校园图书管理系统");
-        setSize(800, 550);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 关闭后不退出程序
-        setLocationRelativeTo(null); // 居中显示
-        getContentPane().setBackground(Color.WHITE); // 设置背景色
-
-        // 2. 创建表单面板（使用 GroupLayout 实现更灵活的布局）
-        JPanel panel = new JPanel();
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-        GroupLayout layout = new GroupLayout(panel);
-        panel.setLayout(layout);
+    public BookEntryUIPanel() {
+        // 1. 初始化面板（去掉 JFrame 相关代码）
+        setBackground(Color.WHITE);
+        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        GroupLayout layout = new GroupLayout(this);
+        setLayout(layout);
         layout.setAutoCreateGaps(true);
         layout.setAutoCreateContainerGaps(true);
 
-        // 3. 添加组件到面板
+        // 2. 添加组件到面板
         JLabel lblTitle = new JLabel("图书录入");
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 24));
         lblTitle.setForeground(new Color(51, 51, 51));
@@ -104,7 +97,7 @@ public class BookEntryUI extends JFrame {
             }
         });
 
-        // 4. 布局设置
+        // 3. 布局设置
         layout.setHorizontalGroup(
                 layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(lblTitle)
@@ -168,9 +161,6 @@ public class BookEntryUI extends JFrame {
                                 .addComponent(btnSubmit)
                                 .addComponent(btnClear))
         );
-
-        // 5. 将面板加入窗口
-        add(panel);
     }
 
     // 【关键】将表单数据写入 MySQL 数据库
@@ -247,11 +237,4 @@ public class BookEntryUI extends JFrame {
         cmbCategory.setSelectedIndex(0); // 重置分类为第一个选项
     }
 
-    // 测试入口：启动图书录入窗口
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            BookEntryUI entryUI = new BookEntryUI();
-            entryUI.setVisible(true);
-        });
-    }
 }
