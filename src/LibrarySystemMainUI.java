@@ -4,22 +4,25 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.*;
 import java.util.logging.Logger;
+
 //主界面
 public class LibrarySystemMainUI extends JFrame {
     private JPanel rightContent;
     private JPanel leftNav;
     private GridBagConstraints gbc;
-    private User currentUser;
-    private Connection conn;
+    private final User currentUser; // 添加final修饰符
+    private final Connection conn; // 添加final修饰符
     private static final Logger logger = Logger.getLogger(LibrarySystemMainUI.class.getName());
-    private BookManagerPanel bookManagerPanel; // 添加对图书管理面板的引用
-    private BookEntryPanel bookEntryPanel;
-    private BorrowManagementPanel borrowManagementPanel;
-    private ReturnManagementPanel returnManagementPanel;
-    private ReservationManagerPanel reservationManagerPanel;
-    private UserManagementPanel userManagementPanel;
-    private StatsAnalysisPanel statsAnalysisPanel;
-    private BookSearchPanel bookSearchPanel;
+    private BookManagerPanel bookManagerPanel; // 图书管理面板
+    private BookEntryPanel bookEntryPanel; // 图书录入面板
+    private BorrowManagementPanel borrowManagementPanel; // 借阅管理面板
+    private ReturnManagementPanel returnManagementPanel; // 归还管理面板
+    private ReservationManagerPanel reservationManagerPanel; // 预约管理面板
+    private UserManagementPanel userManagementPanel; // 用户管理面板
+    private StatsAnalysisPanel statsAnalysisPanel; // 统计分析面板
+    private BookSearchPanel bookSearchPanel; // 图书检索面板
+    private MyBorrowPanel myBorrowPanel; // 我的借阅面板
+    private UserInfoPanel userInfoPanel; // 个人信息面板（新增）
 
     public LibrarySystemMainUI(String username, String role) {
         setTitle("校园图书管理系统");
@@ -28,7 +31,6 @@ public class LibrarySystemMainUI extends JFrame {
         setLocationRelativeTo(null);
 
         currentUser = new User(username, role);
-        //connectToDatabase();
         SqlQuery query=new SqlQuery();
         conn=query.mysqlConnect();
 
@@ -237,7 +239,20 @@ public class LibrarySystemMainUI extends JFrame {
             }
             return bookSearchPanel;
         }
-
+        else if ("我的借阅".equals(functionName)) {
+            System.out.println("我的借阅 clicked");
+            if (myBorrowPanel == null) {
+                myBorrowPanel = new MyBorrowPanel(conn, currentUser.getUsername());
+            }
+            return myBorrowPanel;
+        }
+        else if ("个人信息".equals(functionName)) {
+            System.out.println("个人信息 clicked");
+            if (userInfoPanel == null) {
+                userInfoPanel = new UserInfoPanel(conn, currentUser.getUsername());
+            }
+            return userInfoPanel;
+        }
 
         // 其他功能的默认面板
         JLabel titleLabel = new JLabel(functionName);

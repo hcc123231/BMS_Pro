@@ -10,9 +10,9 @@ import java.sql.SQLException;
 
 public class BookEntryPanel extends JPanel {
     // MySQL 数据库连接信息（修改为你的实际配置）
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的MySQL密码";
+    private static final String DB_PASSWORD = "Lqf123000@";
 
     // Swing 组件
     private JTextField txtISBN, txtTitle, txtAuthor, txtPublisher, txtYear, txtTotal, txtAvailable;
@@ -194,10 +194,15 @@ public class BookEntryPanel extends JPanel {
             return;
         }
 
+        if (available > total || available < 0) {
+            JOptionPane.showMessageDialog(this, "可借数量不能大于总数量或为负数！", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         // 3. JDBC 连接数据库并插入数据
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // SQL：使用 ? 占位符防止 SQL 注入
-            String sql = "INSERT INTO books (isbn, title, author, publisher, publication_year, category, total_quantity, available_quantity) " +
+            // SQL：使用 ? 占位符防止 SQL 注入，修改为匹配 bookinfo 表结构
+            String sql = "INSERT INTO bookinfo (isbn, bname, author, category, publication_year, available, ref_cnt, entry_date) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -205,11 +210,19 @@ public class BookEntryPanel extends JPanel {
                 pstmt.setString(1, isbn);
                 pstmt.setString(2, title);
                 pstmt.setString(3, author);
-                pstmt.setString(4, publisher);
-                pstmt.setInt(5, year);
-                pstmt.setString(6, category);
-                pstmt.setInt(7, total);
-                pstmt.setInt(8, available);
+                pstmt.setString(4, category);
+
+                // 将整数年份转换为日期格式（YYYY-01-01）
+                pstmt.setString(5, year + "-01-01");
+
+                // 设置可用性状态（1表示可借阅）
+                pstmt.setInt(6, available > 0 ? 1 : 0);
+
+                // 初始借阅次数为0
+                pstmt.setInt(7, 0);
+
+                // 录入日期为当前日期
+                pstmt.setDate(8, new java.sql.Date(System.currentTimeMillis()));
 
                 // 执行插入（返回影响行数）
                 int affectedRows = pstmt.executeUpdate();
