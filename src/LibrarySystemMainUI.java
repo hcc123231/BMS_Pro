@@ -176,6 +176,10 @@ public class LibrarySystemMainUI extends JFrame {
         else if ("图书录入".equals(functionName)) {
             return new BookEntryUIPanel();
         }
+        // 借阅管理
+        else if ("借阅管理".equals(functionName)) {
+            return new BorrowManagementPanel();
+        }
         // 其他功能
         else {
             JLabel titleLabel = new JLabel(functionName);
