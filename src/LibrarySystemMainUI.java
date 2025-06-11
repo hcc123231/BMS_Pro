@@ -4,7 +4,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.*;
 import java.util.logging.Logger;
-
+//主界面
 public class LibrarySystemMainUI extends JFrame {
     private JPanel rightContent;
     private JPanel leftNav;
@@ -218,7 +218,7 @@ public class LibrarySystemMainUI extends JFrame {
     }
 
     // 若需单独测试操作界面，可保留 main，实际应通过登录后调用 start
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         start("admin", "管理员");
-    }
+    }*/
 }

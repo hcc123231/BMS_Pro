@@ -10,9 +10,9 @@ public class RegistrationForm extends JFrame {
     private JComboBox<String> roleComboBox;
     private JButton registerButton, resetButton;
     private JLabel messageLabel;
-    JFrame m_frmGlobal;
-    public RegistrationForm(JFrame frmGlobal) {
-        m_frmGlobal=frmGlobal;
+    private BmsLogin m_loginUi;
+    public RegistrationForm(BmsLogin loginUi) {
+        m_loginUi=loginUi;
         // 设置窗口标题
         setTitle("校园图书管理系统 - 注册");
         // 设置窗口大小
@@ -169,7 +169,7 @@ public class RegistrationForm extends JFrame {
                     public void actionPerformed(ActionEvent e) {
                         dispose();
                         // 这里可以添加跳转到登录页面的代码
-                        m_frmGlobal.setVisible(true);
+                        m_loginUi.frmGlobal.setVisible(true);
 
                     }
                 });

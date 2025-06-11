@@ -35,6 +35,15 @@ public class Main {
                 }
             }
         });
+        login.btnRegister.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                RegistrationForm registerUi=new RegistrationForm(login);
+                login.frmGlobal.setVisible(false);
+                registerUi.setVisible(true);
+            }
+        });
+
 
     }
 }

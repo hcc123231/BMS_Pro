@@ -30,15 +30,15 @@ public class BmsLogin {
             }
         });
         btnRegister=new JButton(("注册"));
-        btnRegister.addActionListener(new ActionListener() {
+        /*btnRegister.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("clicked register");
-                RegistrationForm registerInterface=new RegistrationForm(frmGlobal);
+                RegistrationForm registerInterface=new RegistrationForm();
                 frmGlobal.setVisible(false);
                 registerInterface.setVisible(true);
             }
-        });
+        });*/
         pnButtn=new JPanel();
 
         edtAccount=new JEditorPane();
