@@ -3,10 +3,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
-public class UserManagementUI extends JFrame {
+
+public class UserManagementPanel extends JPanel {
     // MySQL 配置
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
@@ -20,12 +19,9 @@ public class UserManagementUI extends JFrame {
     private DefaultTableModel modelUsers;
     private JComboBox<String> roleComboBox;
 
-    public UserManagementUI() {
-        setTitle("用户管理 - 校园图书管理系统");
-        setSize(900, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(Color.WHITE);
+    public UserManagementPanel() {
+        setBackground(Color.WHITE);
+        setLayout(new BorderLayout());
 
         initComponents();
         loadUsers(); // 加载所有用户
@@ -208,7 +204,7 @@ public class UserManagementUI extends JFrame {
         }
     }
 
-    // 搜索用户
+    // 搜索功能
     private void searchUsers() {
         String keyword = txtSearch.getText().trim();
         modelUsers.setRowCount(0); // 清空表格
@@ -410,11 +406,16 @@ public class UserManagementUI extends JFrame {
         roleComboBox.setSelectedIndex(0);
     }
 
-    // 主方法测试
+    // 测试入口
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            UserManagementUI ui = new UserManagementUI();
-            ui.setVisible(true);
+            JFrame frame = new JFrame("用户管理 - 校园图书管理系统");
+            UserManagementPanel panel = new UserManagementPanel();
+            frame.add(panel);
+            frame.setSize(900, 600);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
     }
 }

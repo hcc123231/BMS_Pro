@@ -1,14 +1,13 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Calendar;
 
-public class StatsAnalysisUI extends JFrame {
+
+
+public class StatsAnalysisPanel extends JPanel {
     // 数据库配置（需与系统保持一致）
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
@@ -23,12 +22,9 @@ public class StatsAnalysisUI extends JFrame {
     private JLabel avgBorrowLabel;   // 人均借阅量
     private JLabel topBookLabel;     // 最热门图书
 
-    public StatsAnalysisUI() {
-        setTitle("统计分析 - 校园图书管理系统");
-        setSize(1000, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(Color.WHITE);
+    public StatsAnalysisPanel() {
+        setBackground(Color.WHITE);
+        setLayout(new BorderLayout());
 
         initComponents();
         loadStats(); // 初始化加载统计数据
@@ -37,6 +33,7 @@ public class StatsAnalysisUI extends JFrame {
     // 初始化界面组件
     private void initComponents() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBackground(Color.WHITE);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         // 顶部筛选区域
@@ -355,11 +352,16 @@ public class StatsAnalysisUI extends JFrame {
         }
     }
 
-    // 主方法：启动统计分析界面
+    // 测试入口
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            StatsAnalysisUI ui = new StatsAnalysisUI();
-            ui.setVisible(true);
+            JFrame frame = new JFrame("统计分析 - 校园图书管理系统");
+            StatsAnalysisPanel panel = new StatsAnalysisPanel();
+            frame.add(panel);
+            frame.setSize(1000, 600);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
     }
 }

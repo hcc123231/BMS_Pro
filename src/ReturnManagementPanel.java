@@ -6,7 +6,8 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class ReturnManagementUI extends JFrame {
+
+public class ReturnManagementPanel extends JPanel {
     // MySQL 数据库连接信息（修改为你的实际配置）
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
@@ -20,12 +21,9 @@ public class ReturnManagementUI extends JFrame {
     private DefaultTableModel modelRecords;
     private JTextField txtSearch;
 
-    public ReturnManagementUI() {
-        setTitle("图书归还管理 - 校园图书管理系统");
-        setSize(900, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(Color.WHITE);
+    public ReturnManagementPanel() {
+        setBackground(Color.WHITE);
+        setLayout(new BorderLayout());
 
         initComponents();
         loadBorrowedRecords(); // 加载未归还的记录
@@ -183,7 +181,7 @@ public class ReturnManagementUI extends JFrame {
         }
     }
 
-    // 搜索未归还的借阅记录
+    // 搜索一个未归还的借阅记录
     private void searchBorrowedRecords() {
         String keyword = txtSearch.getText().trim();
         modelRecords.setRowCount(0); // 清空表格
@@ -348,11 +346,16 @@ public class ReturnManagementUI extends JFrame {
         }
     }
 
-    // 主方法测试
+    // 测试入口
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            ReturnManagementUI ui = new ReturnManagementUI();
-            ui.setVisible(true);
+            JFrame frame = new JFrame("图书归还管理 - 校园图书管理系统");
+            ReturnManagementPanel panel = new ReturnManagementPanel();
+            frame.add(panel);
+            frame.setSize(900, 600);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
     }
 }

@@ -1,12 +1,12 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class BorrowManagementUI extends JFrame {
+
+public class BorrowManagementPanel extends JPanel {
     // MySQL 配置
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
@@ -26,12 +26,9 @@ public class BorrowManagementUI extends JFrame {
     private JTextField txtSearch;
     private JButton btnSearch, btnRefresh;
 
-    public BorrowManagementUI() {
-        setTitle("借阅管理 - 校园图书管理系统");
-        setSize(1000, 650);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(Color.WHITE);
+    public BorrowManagementPanel() {
+        setBackground(Color.WHITE);
+        setLayout(new BorderLayout());
 
         // 初始化标签页
         tabbedPane = new JTabbedPane();
@@ -145,7 +142,7 @@ public class BorrowManagementUI extends JFrame {
         panelHistory.setBackground(Color.WHITE);
         panelHistory.setLayout(new BorderLayout(10, 10));
 
-        // 搜索栏
+        // 搜索框
         JPanel panelSearch = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         panelSearch.setBackground(Color.WHITE);
 
@@ -320,7 +317,7 @@ public class BorrowManagementUI extends JFrame {
         }
     }
 
-    // 搜索借阅记录
+    // 搜索视频频借阅记录
     private void searchRecords() {
         String keyword = txtSearch.getText().trim();
         modelHistory.setRowCount(0); // 清空表格
@@ -375,8 +372,13 @@ public class BorrowManagementUI extends JFrame {
     // 主方法测试
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            BorrowManagementUI ui = new BorrowManagementUI();
-            ui.setVisible(true);
+            JFrame frame = new JFrame("借阅管理 - 校园图书管理系统");
+            BorrowManagementPanel panel = new BorrowManagementPanel();
+            frame.add(panel);
+            frame.setSize(1000, 650);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
     }
 }

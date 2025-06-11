@@ -13,6 +13,13 @@ public class LibrarySystemMainUI extends JFrame {
     private Connection conn;
     private static final Logger logger = Logger.getLogger(LibrarySystemMainUI.class.getName());
     private BookManagerPanel bookManagerPanel; // 添加对图书管理面板的引用
+    private BookEntryPanel bookEntryPanel;
+    private BorrowManagementPanel borrowManagementPanel;
+    private ReturnManagementPanel returnManagementPanel;
+    private ReservationManagerPanel reservationManagerPanel;
+    private UserManagementPanel userManagementPanel;
+    private StatsAnalysisPanel statsAnalysisPanel;
+    private BookSearchPanel bookSearchPanel;
 
     public LibrarySystemMainUI(String username, String role) {
         setTitle("校园图书管理系统");
@@ -23,7 +30,7 @@ public class LibrarySystemMainUI extends JFrame {
         currentUser = new User(username, role);
         //connectToDatabase();
         SqlQuery query=new SqlQuery();
-        query.mysqlConnect();
+        conn=query.mysqlConnect();
 
         initializeMainUI();
     }
@@ -161,16 +168,76 @@ public class LibrarySystemMainUI extends JFrame {
     }
 
     private JPanel createFunctionPanel(String functionName) {
+        System.out.println("enter createFunctionPanel");
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
         // 当选择"图书管理"时，创建BookManagerPanel实例
         if ("图书管理".equals(functionName)) {
+            System.out.println("equals-'图书管理'");
             if (bookManagerPanel == null) {
                 bookManagerPanel = new BookManagerPanel(conn);
+                bookManagerPanel.setVisible(true);
             }
             return bookManagerPanel;
         }
+        else if("图书录入".equals(functionName)){
+            System.out.println("图书录入lab clicked");
+            if(bookEntryPanel==null){
+                bookEntryPanel=new BookEntryPanel();
+                bookEntryPanel.setVisible(true);
+            }
+            return bookEntryPanel;
+        }
+        else if("借阅管理".equals(functionName)){
+            System.out.println("借阅管理 clicked");
+            if(borrowManagementPanel==null){
+                borrowManagementPanel=new BorrowManagementPanel();
+                borrowManagementPanel.setVisible(true);
+            }
+            return borrowManagementPanel;
+        }
+        else if("归还管理".equals(functionName)){
+            System.out.println("归还管理 clicked");
+            if(returnManagementPanel==null){
+                returnManagementPanel=new ReturnManagementPanel();
+                returnManagementPanel.setVisible(true);
+            }
+            return returnManagementPanel;
+        }
+        else if("预约管理".equals(functionName)){
+            System.out.println("预约管理 clicked");
+            if(reservationManagerPanel==null){
+                reservationManagerPanel=new ReservationManagerPanel(conn);
+                reservationManagerPanel.setVisible(true);
+            }
+            return reservationManagerPanel;
+        }
+        else if("用户管理".equals(functionName)){
+            System.out.println("用户管理 clicked");
+            if(userManagementPanel==null){
+                userManagementPanel=new UserManagementPanel();
+                userManagementPanel.setVisible(true);
+            }
+            return userManagementPanel;
+        }
+        else if("统计分析".equals(functionName)){
+            System.out.println("统计分析 clicked");
+            if(statsAnalysisPanel==null){
+                statsAnalysisPanel=new StatsAnalysisPanel();
+                statsAnalysisPanel.setVisible(true);
+            }
+            return statsAnalysisPanel;
+        }
+        else if("图书检索".equals(functionName)){
+            System.out.println("图书检索 clicked");
+            if(bookSearchPanel==null){
+                bookSearchPanel=new BookSearchPanel(this);
+                bookSearchPanel.setVisible(true);
+            }
+            return bookSearchPanel;
+        }
+
 
         // 其他功能的默认面板
         JLabel titleLabel = new JLabel(functionName);

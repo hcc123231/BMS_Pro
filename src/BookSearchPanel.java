@@ -7,27 +7,28 @@ import java.time.LocalDate; // 添加缺少的导入
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookSearchUI extends JFrame {
+
+
+
+public class BookSearchPanel extends JPanel {
     // MySQL 配置
     private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "你的密码";
 
     // 组件声明
-    private JPanel mainPanel;
     private JTextField txtSearch, txtTitle, txtAuthor, txtIsbn, txtPublisher;
     private JComboBox<String> categoryComboBox, availabilityComboBox;
     private JButton btnSearch, btnReset, btnViewDetails;
     private JTable tableBooks;
     private DefaultTableModel modelBooks;
     private JSpinner publicationYearSpinner;
+    private JFrame m_frame;
 
-    public BookSearchUI() {
-        setTitle("图书检索 - 校园图书管理系统");
-        setSize(1000, 650);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(Color.WHITE);
+    public BookSearchPanel(JFrame frame) {
+        m_frame=frame;
+        setBackground(Color.WHITE);
+        setLayout(new BorderLayout());
 
         initComponents();
         loadCategories(); // 加载图书分类
@@ -36,7 +37,7 @@ public class BookSearchUI extends JFrame {
 
     // 初始化组件
     private void initComponents() {
-        mainPanel = new JPanel(new BorderLayout(10, 10));
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
@@ -480,7 +481,15 @@ public class BookSearchUI extends JFrame {
                 try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         // 创建详情对话框
-                        JDialog dialog = new JDialog(this, "图书详情", true);
+                        JDialog dialog;
+                        Window mainWindow = SwingUtilities.getWindowAncestor(this); // 获取当前面板所在的顶层窗口
+                        if (mainWindow != null) {
+                            dialog = new JDialog(m_frame, "图书详情", true); // 使用顶层窗口作为父组件
+                        } else {
+                            dialog = new JDialog(); // 如果没有顶层窗口，则创建无父窗口的对话框
+                            dialog.setTitle("图书详情");
+                        }
+
                         dialog.setSize(500, 400);
                         dialog.setLocationRelativeTo(this);
                         dialog.getContentPane().setBackground(Color.WHITE);
@@ -657,11 +666,16 @@ public class BookSearchUI extends JFrame {
         }
     }
 
-    // 主方法测试
-    public static void main(String[] args) {
+    // 测试入口
+    /*public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            BookSearchUI ui = new BookSearchUI();
-            ui.setVisible(true);
+            JFrame frame = new JFrame("图书检索 - 校园图书管理系统");
+            BookSearchPanel panel = new BookSearchPanel();
+            frame.add(panel);
+            frame.setSize(1000, 650);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
         });
-    }
+    }*/
 }

@@ -15,6 +15,9 @@ public class SqlQuery {
         }
         return m_conn;
     }
+    public void mysqlDisconnect(Connection conn) throws SQLException {
+        conn.close();
+    }
 
     public int selectQuery(int num,String[] str) throws SQLException {
         //传进来的第一个参数一定是sql语句，而后跟着的是sql语句中的参数
