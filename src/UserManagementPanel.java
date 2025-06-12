@@ -7,9 +7,9 @@ import java.sql.*;
 
 public class UserManagementPanel extends JPanel {
     // MySQL 配置
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的密码";
+    private static final String DB_PASSWORD = "Lqf123000@";
 
     // 组件声明
     private JPanel mainPanel;
@@ -96,7 +96,8 @@ public class UserManagementPanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.WEST;
-
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.VERTICAL;
         // 用户ID
         JLabel lblUserId = new JLabel("用户ID:");
         lblUserId.setFont(new Font("微软雅黑", Font.PLAIN, 14));
@@ -121,7 +122,17 @@ public class UserManagementPanel extends JPanel {
         gbc.gridx = 3;
         gbc.gridy = 0;
         formPanel.add(txtUsername, gbc);
+        // 添加密码输入框
+        JLabel lblPassword = new JLabel("密码:");
+        lblPassword.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        formPanel.add(lblPassword, gbc);
 
+        JPasswordField txtPassword = new JPasswordField(15);
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        formPanel.add(txtPassword, gbc);
         // 用户角色
         JLabel lblRole = new JLabel("角色:");
         lblRole.setFont(new Font("微软雅黑", Font.PLAIN, 14));
@@ -162,7 +173,7 @@ public class UserManagementPanel extends JPanel {
         buttonPanel.add(btnDelete);
 
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 4;
         gbc.anchor = GridBagConstraints.CENTER;
         formPanel.add(buttonPanel, gbc);
@@ -174,16 +185,18 @@ public class UserManagementPanel extends JPanel {
 
         add(mainPanel);
     }
-
     // 加载所有用户
     private void loadUsers() {
         modelUsers.setRowCount(0); // 清空表格
 
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT u.user_id, u.username, u.role, u.create_time, " +
-                    "(SELECT COUNT(*) FROM borrow_records br WHERE br.user_id = u.user_id AND br.status = '借阅中') AS borrow_count " +
-                    "FROM users u " +
-                    "ORDER BY u.create_time DESC";
+            // 修改查询语句以匹配user表结构
+            String sql = "SELECT u.uid AS user_id, u.account AS username, " +
+                    "CASE WHEN u.chara = '0' THEN '普通用户' ELSE '管理员' END AS role, " +
+                    "u.created AS create_time, " +
+                    "(SELECT COUNT(*) FROM borrow_relation br WHERE br.uid = u.uid AND br.practical_date > CURDATE()) AS borrow_count " +
+                    "FROM `user` u " +
+                    "ORDER BY u.created DESC";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql);
                  ResultSet rs = pstmt.executeQuery()) {
@@ -215,11 +228,14 @@ public class UserManagementPanel extends JPanel {
         }
 
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sql = "SELECT u.user_id, u.username, u.role, u.create_time, " +
-                    "(SELECT COUNT(*) FROM borrow_records br WHERE br.user_id = u.user_id AND br.status = '借阅中') AS borrow_count " +
-                    "FROM users u " +
-                    "WHERE u.username LIKE ? OR CAST(u.user_id AS CHAR) LIKE ? " +
-                    "ORDER BY u.create_time DESC";
+            // 修改搜索查询以匹配新表结构
+            String sql = "SELECT u.uid AS user_id, u.account AS username, " +
+                    "CASE WHEN u.chara = '0' THEN '普通用户' ELSE '管理员' END AS role, " +
+                    "u.created AS create_time, " +
+                    "(SELECT COUNT(*) FROM borrow_relation br WHERE br.uid = u.uid AND br.practical_date > CURDATE()) AS borrow_count " +
+                    "FROM `user` u " +
+                    "WHERE u.account LIKE ? OR CAST(u.uid AS CHAR) LIKE ? " +
+                    "ORDER BY u.created DESC";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, "%" + keyword + "%");
@@ -247,6 +263,7 @@ public class UserManagementPanel extends JPanel {
     private void addUser() {
         String username = txtUsername.getText().trim();
         String role = (String) roleComboBox.getSelectedItem();
+        char chara = "管理员".equals(role) ? '1' : '0'; // 角色转换
 
         // 非空校验
         if (username.isEmpty()) {
@@ -256,7 +273,7 @@ public class UserManagementPanel extends JPanel {
 
         // 检查用户名是否已存在
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT user_id FROM users WHERE username = ?";
+            String sqlCheck = "SELECT uid FROM `user` WHERE account = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
                 pstmt.setString(1, username);
                 ResultSet rs = pstmt.executeQuery();
@@ -266,11 +283,12 @@ public class UserManagementPanel extends JPanel {
                 }
             }
 
-            // 添加用户
-            String sqlInsert = "INSERT INTO users (username, role, create_time) VALUES (?, ?, NOW())";
+            // 添加用户（注意：number字段需要默认值或用户输入）
+            String sqlInsert = "INSERT INTO `user` (account, `password`, number, chara, created) " +
+                    "VALUES (?, '123456', 'default_number', ?, NOW())";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlInsert)) {
                 pstmt.setString(1, username);
-                pstmt.setString(2, role);
+                pstmt.setString(2, String.valueOf(chara));
                 pstmt.executeUpdate();
             }
 
@@ -289,6 +307,7 @@ public class UserManagementPanel extends JPanel {
         String userIdStr = txtUserId.getText().trim();
         String username = txtUsername.getText().trim();
         String role = (String) roleComboBox.getSelectedItem();
+        char chara = "管理员".equals(role) ? '1' : '0'; // 角色转换
 
         // 非空校验
         if (userIdStr.isEmpty()) {
@@ -312,7 +331,7 @@ public class UserManagementPanel extends JPanel {
 
         // 检查用户名是否已被其他用户使用
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT user_id FROM users WHERE username = ? AND user_id != ?";
+            String sqlCheck = "SELECT uid FROM `user` WHERE account = ? AND uid != ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
                 pstmt.setString(1, username);
                 pstmt.setInt(2, userId);
@@ -323,11 +342,11 @@ public class UserManagementPanel extends JPanel {
                 }
             }
 
-            // 更新用户
-            String sqlUpdate = "UPDATE users SET username = ?, role = ? WHERE user_id = ?";
+            // 更新用户（注意：number字段未修改，如需修改需添加输入框）
+            String sqlUpdate = "UPDATE `user` SET account = ?, chara = ? WHERE uid = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlUpdate)) {
                 pstmt.setString(1, username);
-                pstmt.setString(2, role);
+                pstmt.setString(2, String.valueOf(chara));
                 pstmt.setInt(3, userId);
                 pstmt.executeUpdate();
             }
@@ -342,6 +361,7 @@ public class UserManagementPanel extends JPanel {
         }
     }
 
+    // 删除用户
     // 删除用户
     private void deleteUser() {
         String userIdStr = txtUserId.getText().trim();
@@ -370,9 +390,9 @@ public class UserManagementPanel extends JPanel {
             return;
         }
 
-        // 检查用户是否有未归还的图书
+        // 检查用户是否有未归还的图书（practical_date > CURDATE()表示未归还）
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT COUNT(*) AS count FROM borrow_records WHERE user_id = ? AND status = '借阅中'";
+            String sqlCheck = "SELECT COUNT(*) AS count FROM borrow_relation WHERE uid = ? AND practical_date > CURDATE()";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
                 pstmt.setInt(1, userId);
                 ResultSet rs = pstmt.executeQuery();
@@ -383,7 +403,7 @@ public class UserManagementPanel extends JPanel {
             }
 
             // 删除用户
-            String sqlDelete = "DELETE FROM users WHERE user_id = ?";
+            String sqlDelete = "DELETE FROM `user` WHERE uid = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sqlDelete)) {
                 pstmt.setInt(1, userId);
                 pstmt.executeUpdate();

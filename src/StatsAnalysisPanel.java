@@ -5,13 +5,11 @@ import java.sql.*;
 import java.util.Date;
 import java.util.Calendar;
 
-
-
 public class StatsAnalysisPanel extends JPanel {
     // 数据库配置（需与系统保持一致）
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的密码";
+    private static final String DB_PASSWORD = "Lqf123000@";
 
     // 组件声明
     private JComboBox<String> statsTypeCombo; // 统计类型（借阅趋势、热门图书、用户排行等）
@@ -82,7 +80,7 @@ public class StatsAnalysisPanel extends JPanel {
         metricsPanel.add(topBookLabel);
 
         // 统计结果表格
-        String[] tableColumns = {"名称", "借阅量", "占比"};
+        String[] tableColumns = {"项目", "数量", "占比"};
         statsModel = new DefaultTableModel(tableColumns, 0);
         statsTable = new JTable(statsModel);
         statsTable.setFont(new Font("微软雅黑", Font.PLAIN, 12));
@@ -136,10 +134,10 @@ public class StatsAnalysisPanel extends JPanel {
     // 1. 图书借阅趋势（按时间维度统计）
     private void loadBorrowTrend(Connection conn, String timeRange) throws SQLException {
         String sql = "SELECT " +
-                "DATE_FORMAT(borrow_date, ?) AS time_unit, " +
+                "DATE_FORMAT(start_date, ?) AS time_unit, " +
                 "COUNT(*) AS borrow_count " +
-                "FROM borrow_records " +
-                "WHERE borrow_date >= ? " +
+                "FROM borrow_relation " +
+                "WHERE start_date >= ? " +
                 "GROUP BY time_unit " +
                 "ORDER BY time_unit";
 
@@ -168,11 +166,11 @@ public class StatsAnalysisPanel extends JPanel {
     // 2. 热门图书排行（Top10）
     private void loadTopBooks(Connection conn, String timeRange) throws SQLException {
         String sql = "SELECT " +
-                "b.title, COUNT(*) AS borrow_count " +
-                "FROM borrow_records br " +
-                "JOIN books b ON br.book_id = b.id " +
-                "WHERE br.borrow_date >= ? " +
-                "GROUP BY br.book_id " +
+                "bi.bname, COUNT(*) AS borrow_count " +
+                "FROM borrow_relation br " +
+                "JOIN bookinfo bi ON br.bid = bi.bid " +
+                "WHERE br.start_date >= ? " +
+                "GROUP BY br.bid " +
                 "ORDER BY borrow_count DESC " +
                 "LIMIT 10";
 
@@ -201,11 +199,11 @@ public class StatsAnalysisPanel extends JPanel {
     // 3. 用户借阅排行（Top10）
     private void loadTopUsers(Connection conn, String timeRange) throws SQLException {
         String sql = "SELECT " +
-                "u.username, COUNT(*) AS borrow_count " +
-                "FROM borrow_records br " +
-                "JOIN users u ON br.user_id = u.user_id " +
-                "WHERE br.borrow_date >= ? " +
-                "GROUP BY br.user_id " +
+                "u.number, COUNT(*) AS borrow_count " +
+                "FROM borrow_relation br " +
+                "JOIN user u ON br.uid = u.uid " +
+                "WHERE br.start_date >= ? " +
+                "GROUP BY br.uid " +
                 "ORDER BY borrow_count DESC " +
                 "LIMIT 10";
 
@@ -230,11 +228,11 @@ public class StatsAnalysisPanel extends JPanel {
     // 4. 分类借阅占比
     private void loadCategoryRatio(Connection conn, String timeRange) throws SQLException {
         String sql = "SELECT " +
-                "b.category, COUNT(*) AS borrow_count " +
-                "FROM borrow_records br " +
-                "JOIN books b ON br.book_id = b.id " +
-                "WHERE br.borrow_date >= ? " +
-                "GROUP BY b.category " +
+                "bi.category, COUNT(*) AS borrow_count " +
+                "FROM borrow_relation br " +
+                "JOIN bookinfo bi ON br.bid = bi.bid " +
+                "WHERE br.start_date >= ? " +
+                "GROUP BY bi.category " +
                 "ORDER BY borrow_count DESC";
 
         Date startDate = getTimeRangeStart(timeRange);
@@ -317,7 +315,7 @@ public class StatsAnalysisPanel extends JPanel {
 
     // 获取总借阅量
     private int getTotalBorrow(Connection conn, String timeRange) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM borrow_records WHERE borrow_date >= ?";
+        String sql = "SELECT COUNT(*) FROM borrow_relation WHERE start_date >= ?";
         Date startDate = getTimeRangeStart(timeRange);
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -330,7 +328,7 @@ public class StatsAnalysisPanel extends JPanel {
 
     // 获取总用户数（用于计算人均借阅量）
     private int getTotalUsers(Connection conn) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM users";
+        String sql = "SELECT COUNT(*) FROM user";
         try (PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
             rs.next();
