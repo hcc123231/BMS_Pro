@@ -7,9 +7,9 @@ import java.util.Calendar;
 
 public class StatsAnalysisPanel extends JPanel {
     // 数据库配置（需与系统保持一致）
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Lqf123000@";
+    private static final String DB_PASSWORD = "2028915986hcc";
 
     // 组件声明
     private JComboBox<String> statsTypeCombo; // 统计类型（借阅趋势、热门图书、用户排行等）
@@ -182,7 +182,7 @@ public class StatsAnalysisPanel extends JPanel {
 
             while (rs.next()) {
                 statsModel.addRow(new Object[]{
-                        rs.getString("title"),
+                        rs.getString("bname"),
                         rs.getInt("borrow_count"),
                         calcRatio(rs.getInt("borrow_count"), getTotalBorrow(conn, timeRange)) + "%"
                 });
@@ -215,7 +215,7 @@ public class StatsAnalysisPanel extends JPanel {
 
             while (rs.next()) {
                 statsModel.addRow(new Object[]{
-                        rs.getString("username"),
+                        rs.getString("account"),
                         rs.getInt("borrow_count"),
                         calcRatio(rs.getInt("borrow_count"), getTotalBorrow(conn, timeRange)) + "%"
                 });

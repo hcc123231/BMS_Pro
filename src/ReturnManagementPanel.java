@@ -196,7 +196,7 @@ public class ReturnManagementPanel extends JPanel {
             loadBorrowedRecords(); // 关键词为空时加载全部
             return;
         }
-        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.is_ret from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.is_ret=0 and B.id like ? or B.bid like ? or B.uid like ? or A.bname like ? order by B.start_date";
+        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,B.is_ret from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where B.is_ret=0 and B.id like ? or B.bid like ? or B.uid like ? or A.bname like ? order by B.start_date";
         m_query.mysqlConnect();
         String param = "%" + keyword + "%";
         ResultSet rset = m_query.selectQuery(5, new String[]{sql, param, param, param, param});
@@ -261,109 +261,6 @@ public class ReturnManagementPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "归还失败：" + e.getMessage(), "错误提示", JOptionPane.ERROR_MESSAGE);
         }
 
-
-
-
-        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            conn.setAutoCommit(false); // 开启事务
-            try {
-                // 检查记录状态
-                String sqlCheck = "SELECT status, book_id, due_date FROM borrow_records WHERE record_id = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
-                    pstmt.setInt(1, Integer.parseInt(recordId));
-                    ResultSet rs = pstmt.executeQuery();
-                    if (!rs.next() || !"借阅中".equals(rs.getString("status"))) {
-                        throw new SQLException("记录不存在或已归还");
-                    }
-
-                    int bookId = rs.getInt("book_id");
-                    String dueDate = rs.getString("due_date");
-
-                    // 计算罚金
-                    LocalDate dueDateObj = LocalDate.parse(dueDate);
-                    LocalDate returnDateObj = LocalDate.parse(returnDate);
-                    double fine = 0.0;
-                    if (returnDateObj.isAfter(dueDateObj)) {
-                        long overdueDays = returnDateObj.toEpochDay() - dueDateObj.toEpochDay();
-                        fine = overdueDays * 0.5; // 每天0.5元罚金
-                    }
-
-                    // 更新借阅记录
-                    String sqlUpdateRecord = "UPDATE borrow_records " +
-                            "SET return_date = ?, status = '已归还', fine = ? " +
-                            "WHERE record_id = ?";
-                    try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdateRecord)) {
-                        pstmtUpdate.setString(1, returnDate);
-                        pstmtUpdate.setDouble(2, fine);
-                        pstmtUpdate.setInt(3, Integer.parseInt(recordId));
-                        pstmtUpdate.executeUpdate();
-                    }
-
-                    // 更新图书库存
-                    String sqlUpdateBook = "UPDATE books " +
-                            "SET available_quantity = available_quantity + 1 " +
-                            "WHERE id = ?";
-                    try (PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdateBook)) {
-                        pstmtUpdate.setInt(1, bookId);
-                        pstmtUpdate.executeUpdate();
-                    }
-                }
-
-                conn.commit(); // 提交事务
-
-                // 显示归还成功信息
-                if (modelRecords.getRowCount() > 0) {
-                    int row = -1;
-                    for (int i = 0; i < modelRecords.getRowCount(); i++) {
-                        if (modelRecords.getValueAt(i, 0).toString().equals(recordId)) {
-                            row = i;
-                            break;
-                        }
-                    }
-
-                    if (row >= 0) {
-                        String fineStr = modelRecords.getValueAt(row, 7).toString();
-                        if (fineStr.equals("无")) {
-                            JOptionPane.showMessageDialog(this, "归还成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(this,
-                                    "归还成功！需缴纳罚金：" + fineStr,
-                                    "成功", JOptionPane.INFORMATION_MESSAGE);
-                        }
-                    } else {
-                        JOptionPane.showMessageDialog(this, "归还成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(this, "归还成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                }
-
-                // 清空表单并刷新记录
-                txtRecordId.setText("");
-                loadBorrowedRecords();
-
-            } catch (SQLException e) {
-                conn.rollback(); // 回滚事务
-                JOptionPane.showMessageDialog(this, "归还失败：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }*/
     }
 }
 
-    // 测试入口
-    /*public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("图书归还管理 - 校园图书管理系统");
-            ReturnManagementPanel panel = new ReturnManagementPanel();
-            frame.add(panel);
-            frame.setSize(900, 600);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
-}*/

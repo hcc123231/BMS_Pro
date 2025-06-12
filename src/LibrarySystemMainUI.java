@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 public class LibrarySystemMainUI extends JFrame {
     private JPanel rightContent;
     private JPanel leftNav;
+    public JButton logoutButton;
     private GridBagConstraints gbc;
     private User currentUser;
     //private Connection conn;
@@ -43,21 +44,6 @@ public class LibrarySystemMainUI extends JFrame {
         initializeMainUI();
     }
 
-    /*private void connectToDatabase() {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            String url = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
-            String dbUser = "root";
-            String dbPass = "Lqf123000@";
-            conn = DriverManager.getConnection(url, dbUser, dbPass);
-            logger.info("数据库连接成功");
-        } catch (Exception e) {
-            logger.severe("数据库连接失败: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "数据库连接失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }
-    }*/
-
     private void initializeMainUI() {
         getContentPane().removeAll();
 
@@ -89,17 +75,11 @@ public class LibrarySystemMainUI extends JFrame {
         }
 
         // 退出按钮
-        JButton logoutButton = new JButton("退出登录");
+        logoutButton = new JButton("退出登录");
         logoutButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         logoutButton.setForeground(Color.BLACK);
         logoutButton.setBackground(new Color(25, 118, 210));
         logoutButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-        logoutButton.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "确定退出？", "确认", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                dispose(); // 关闭当前窗口，若需完全退出可 System.exit(0)
-            }
-        });
 
         gbc.gridy++;
         gbc.weighty = 1.0;
@@ -109,7 +89,7 @@ public class LibrarySystemMainUI extends JFrame {
         // 右侧内容
         rightContent = new JPanel(new BorderLayout());
         rightContent.setBackground(Color.WHITE);
-        rightContent.add(new JLabel("功能面板将在此展示", SwingConstants.CENTER), BorderLayout.CENTER);
+        rightContent.add(new JLabel("欢迎使用", SwingConstants.CENTER), BorderLayout.CENTER);
 
         mainPanel.add(leftNav, BorderLayout.WEST);
         mainPanel.add(rightContent, BorderLayout.CENTER);
@@ -228,7 +208,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("用户管理".equals(functionName)){
             System.out.println("用户管理 clicked");
             if(userManagementPanel==null){
-                userManagementPanel=new UserManagementPanel();
+                userManagementPanel=new UserManagementPanel(m_query);
                 userManagementPanel.setVisible(true);
             }
             return userManagementPanel;
@@ -252,6 +232,10 @@ public class LibrarySystemMainUI extends JFrame {
         else if("我的借阅".equals(functionName)){
             System.out.println("我的借阅 clicked");
             if(myBorrowPanel==null){
+                myBorrowPanel=new MyBorrowPanel(m_query,userName);
+                myBorrowPanel.setVisible(true);
+            }else{
+                myBorrowPanel=null;
                 myBorrowPanel=new MyBorrowPanel(m_query,userName);
                 myBorrowPanel.setVisible(true);
             }
@@ -318,8 +302,5 @@ public class LibrarySystemMainUI extends JFrame {
         }
     }
 
-    // 若需单独测试操作界面，可保留 main，实际应通过登录后调用 start
-    /*public static void main(String[] args) {
-        start("admin", "管理员");
-    }*/
+
 }

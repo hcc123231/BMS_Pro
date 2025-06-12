@@ -191,14 +191,5 @@ public class RegistrationForm extends JFrame {
         messageLabel.setText("");
     }
 
-    /*public static void main(String[] args) {
-        // 在事件调度线程上创建和显示GUI
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                RegistrationForm form = new RegistrationForm();
-                form.setVisible(true);
-            }
-        });
-    }*/
+
 }    

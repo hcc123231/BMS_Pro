@@ -9,10 +9,7 @@ import java.sql.SQLException;
 
 
 public class BookEntryPanel extends JPanel {
-    // MySQL 数据库连接信息（修改为你的实际配置）
-    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Lqf123000@";*/
+
     private SqlQuery m_query;
     // Swing 组件
     private JTextField txtISBN, txtTitle, txtAuthor, txtPublisher, txtYear, txtTotal, txtAvailable;
@@ -206,52 +203,25 @@ public class BookEntryPanel extends JPanel {
 
         // 3. JDBC 连接数据库并插入数据
         String sql = "INSERT INTO bookinfo (isbn, bname, author, publisher, publication_year,category, available,ref_cnt) " +
-                           "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+                "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
         m_query.mysqlConnect();
-        int affectedRows=m_query.updateQuery(9,new String[]{sql,isbn,title,author,publisher,yearStr,category,"1","0"});
+        int affectedRows = m_query.updateQuery(9, new String[]{sql, isbn, title, author, publisher, yearStr, category, "1", "0"});
         if (affectedRows > 0) {
             JOptionPane.showMessageDialog(this, "图书录入成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             clearForm(); // 清空表单，方便继续录入
         } else {
             JOptionPane.showMessageDialog(this, "录入失败，请重试！", "错误", JOptionPane.ERROR_MESSAGE);
         }
-        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // SQL：使用 ? 占位符防止 SQL 注入，修改为匹配 bookinfo 表结构
 
+        //同样还要插入一条book_count记录
+        try{
+            sql="insert into book_count (author,bname,availd,total) value (?,?,?,?)";
+            m_query.mysqlConnect();
+            m_query.updateQuery(5,new String[]{sql,author,title,availableStr,totalStr});
+        }catch (SQLException e){
+            throw e;
+        }
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                // 设置 SQL 参数（与 ? 顺序对应）
-                pstmt.setString(1, isbn);
-                pstmt.setString(2, title);
-                pstmt.setString(3, author);
-                pstmt.setString(4, category);
-
-                // 将整数年份转换为日期格式（YYYY-01-01）
-                pstmt.setString(5, year + "-01-01");
-
-                // 设置可用性状态（1表示可借阅）
-                pstmt.setInt(6, available > 0 ? 1 : 0);
-
-                // 初始借阅次数为0
-                pstmt.setInt(7, 0);
-
-                // 录入日期为当前日期
-                pstmt.setDate(8, new java.sql.Date(System.currentTimeMillis()));
-
-                // 执行插入（返回影响行数）
-                int affectedRows = pstmt.executeUpdate();
-                if (affectedRows > 0) {
-                    JOptionPane.showMessageDialog(this, "图书录入成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                    clearForm(); // 清空表单，方便继续录入
-                } else {
-                    JOptionPane.showMessageDialog(this, "录入失败，请重试！", "错误", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        } catch (SQLException ex) {
-            // 数据库异常（如：ISBN 重复、连接失败）
-            JOptionPane.showMessageDialog(this, "数据库错误：" + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace(); // 控制台打印详细错误（调试用）
-        }*/
     }
 
     // 清空表单内容
@@ -266,16 +236,5 @@ public class BookEntryPanel extends JPanel {
         cmbCategory.setSelectedIndex(0); // 重置分类为第一个选项
     }
 
-    // 测试入口：启动图书录入窗口
-    /*public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("图书录入 - 校园图书管理系统");
-            BookEntryPanel entryPanel = new BookEntryPanel();
-            frame.add(entryPanel);
-            frame.setSize(800, 550);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 关闭后不退出程序
-            frame.setLocationRelativeTo(null); // 居中显示
-            frame.setVisible(true);
-        });
-    }*/
+
 }

@@ -80,7 +80,7 @@ public class BookManagerPanel extends JPanel {
     private void loadBooks() throws SQLException {
         tableModel.setRowCount(0);
         m_query.mysqlConnect();
-        String sql = "select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo limit 10 offset 0";
+        String sql = "select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo";
         ResultSet rset = m_query.selectQuery(1, new String[]{sql});
         while (rset.next()) {
             String availableStatus = rset.getInt("available") == 1 ? "可借阅" : "已借出";
@@ -106,6 +106,7 @@ public class BookManagerPanel extends JPanel {
         }
 
         tableModel.setRowCount(0);
+        m_query.mysqlConnect();
         String sql="select bid,bname,category,author,available,ref_cnt,entry_date from bookinfo where "+
                 "bid like ? or "+
                 "bname like ? or "+
@@ -117,13 +118,16 @@ public class BookManagerPanel extends JPanel {
         String kw="%"+keyword+"%";
         ResultSet rset=m_query.selectQuery(8,new String[]{sql,kw,kw,kw,kw,kw,kw,kw});
         while (rset.next()) {
+
             tableModel.addRow(new Object[]{
                     rset.getInt("bid"),
                     rset.getString("bname"),
                     rset.getString("category"),
                     rset.getString("author"),
-                    rset.getString("available"),
+                    rset.getString("available")=="1"?"已借出":"可借阅",
+
                     rset.getInt("ref_cnt"),
+
                     rset.getDate("entry_date")
             });
         }
@@ -154,87 +158,18 @@ public class BookManagerPanel extends JPanel {
         int bid = (int) tableModel.getValueAt(selectedRow, 0);
         int confirm = JOptionPane.showConfirmDialog(this, "确定删除？删除后不可恢复！", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            String sql="delete from bookinfo where bid=?";
-            String sbid=String.valueOf(bid);
-            int affects=m_query.updateQuery(2,new String[]{sql,sbid});
-            System.out.println("delete affect num:"+affects);
-            if (affects==1) {
 
-                JOptionPane.showMessageDialog(this, "成功", "结果", JOptionPane.INFORMATION_MESSAGE);
-                loadBooks(); // 删除后刷新表格
-            }else{
-                logger.severe("删除图书失败: " );
-                JOptionPane.showMessageDialog(this, "删除图书失败", "错误", JOptionPane.ERROR_MESSAGE);
+            m_query.mysqlConnect();
+            try{
+                m_query.bookManagerDeleteBook(bid);
+            }catch (SQLException e){
+                throw e;
             }
-            m_query.mysqlDisconnect();
+
 
         }
     }
 }
-
-// 添加图书对话框
-/*class BookAddDialog extends JDialog {
-    private JTextField nameField, categoryField, authorField;
-    private Connection conn;
-
-    public BookAddDialog(JFrame parent, Connection conn) {
-        super(parent, "添加图书", true);
-        this.conn = conn;
-        setLayout(new GridLayout(6, 2));
-        setSize(400, 300);
-        setLocationRelativeTo(parent);
-
-        // 初始化界面组件
-        JLabel nameLabel = new JLabel("图书名称:");
-        nameField = new JTextField();
-        JLabel categoryLabel = new JLabel("分类:");
-        categoryField = new JTextField();
-        JLabel authorLabel = new JLabel("作者:");
-        authorField = new JTextField();
-        JButton saveButton = new JButton("保存");
-        JButton cancelButton = new JButton("取消");
-
-        // 添加组件到对话框
-        add(nameLabel);
-        add(nameField);
-        add(categoryLabel);
-        add(categoryField);
-        add(authorLabel);
-        add(authorField);
-        add(new JLabel()); // 占位
-        add(new JLabel()); // 占位
-        add(saveButton);
-        add(cancelButton);
-
-        // 绑定事件
-        saveButton.addActionListener(e -> saveBook());
-        cancelButton.addActionListener(e -> dispose());
-    }
-
-    private void saveBook() {
-        String name = nameField.getText().trim();
-        String category = categoryField.getText().trim();
-        String author = authorField.getText().trim();
-
-        if (name.isEmpty() || category.isEmpty() || author.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请填写完整信息", "提示", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try (PreparedStatement pstmt = conn.prepareStatement(
-                "INSERT INTO books (bname, category, author, status, entry_date) VALUES (?, ?, ?, '可借阅', CURDATE())")) {
-            pstmt.setString(1, name);
-            pstmt.setString(2, category);
-            pstmt.setString(3, author);
-            pstmt.executeUpdate();
-            JOptionPane.showMessageDialog(this, "图书添加成功", "成功", JOptionPane.INFORMATION_MESSAGE);
-            dispose();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "添加图书失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-}*/
 
 // 修改图书对话框
 class BookModifyDialog extends JDialog {

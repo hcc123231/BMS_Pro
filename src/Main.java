@@ -38,6 +38,13 @@ public class Main {
                     }
                     else{
                         LibrarySystemMainUI mainUi=new LibrarySystemMainUI(ret[0],ret[1],query);
+                        mainUi.logoutButton.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                mainUi.dispose();
+                                login.frmGlobal.setVisible(true);
+                            }
+                        });
                         login.frmGlobal.setVisible(false);
                         mainUi.setVisible(true);
                     }

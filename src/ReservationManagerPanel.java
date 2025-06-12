@@ -238,9 +238,6 @@ public class ReservationManagerPanel extends JPanel {
             try {
                 int userId = Integer.parseInt(userIdField.getText());
                 int bookId = Integer.parseInt(bookIdField.getText());
-                // 明确指定Date类型为java.sql.Date
-                //java.sql.Date reservationDate = java.sql.Date.valueOf(reservationDateField.getText());
-                //java.sql.Date expirationDate = java.sql.Date.valueOf(expirationDateField.getText());
 
                 // 验证过期日期是否在预约日期之后
                 if (expirationDate.before(reservationDate)) {
@@ -286,11 +283,7 @@ public class ReservationManagerPanel extends JPanel {
             return;
         }
         int reservationId = tableModel.getReservationAt(selectedRow).getId();
-        //String status = tableModel.getReservationAt(selectedRow).getStatus();
-        //if (!"待处理".equals(status)) {
-            //JOptionPane.showMessageDialog(this, "只有'待处理'状态的预约可以取消", "提示", JOptionPane.INFORMATION_MESSAGE);
-            //return;
-       //}
+
         int confirm = JOptionPane.showConfirmDialog(this, "确定要取消这个预约吗？", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
@@ -341,8 +334,7 @@ public class ReservationManagerPanel extends JPanel {
         public void setReservationDate(java.sql.Date reservationDate) { this.reservationDate = reservationDate; }
         public java.sql.Date getExpirationDate() { return expirationDate; }
         public void setExpirationDate(java.sql.Date expirationDate) { this.expirationDate = expirationDate; }
-        //public String getStatus() { return status; }
-        //public void setStatus(String status) { this.status = status; }
+
     }
 
     // 表格模型类

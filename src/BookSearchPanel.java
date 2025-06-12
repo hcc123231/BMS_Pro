@@ -8,10 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BookSearchPanel extends JPanel {
-    // MySQL 配置
-    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Lqf123000@";*/
+
 
     // 组件声明
     private JTextField txtSearch, txtTitle, txtAuthor, txtIsbn, txtPublisher;
@@ -300,7 +297,7 @@ public class BookSearchPanel extends JPanel {
     // 加载所有图书
     private void loadBooks() throws SQLException {
         modelBooks.setRowCount(0);
-        String sql="select * from bookinfo";
+        String sql="select A.*,B.availd from bookinfo as A inner join book_count as B on A.bname=B.bname and A.author=B.author";
         m_query.mysqlConnect();
         ResultSet rset=m_query.selectQuery(1,new String[]{sql});
         while (rset.next()) {
@@ -318,7 +315,7 @@ public class BookSearchPanel extends JPanel {
                     rset.getString("isbn"),
                     pubYear,  // 正确的年份
                     rset.getString("category"),
-                    rset.getInt("available"),
+                    rset.getInt("availd"),
                     status
             });
         }
@@ -354,10 +351,9 @@ public class BookSearchPanel extends JPanel {
                     rset.getString("bname"),
                     rset.getString("author"),
                     rset.getString("isbn"),
-                    "", // 出版社字段留空
                     pubYear,
                     rset.getString("category"),
-                    available,
+                    rset.getString("availd"),
                     status
             });
         }
@@ -414,9 +410,9 @@ public class BookSearchPanel extends JPanel {
         if (!availability.equals("全部")) {
             if (availability.equals("可借阅")) {
 
-                sql+="and A.avalid>0 ";
+                sql+="and A.availd>0 ";
             } else {
-                sql+="and A.avalid=0 ";
+                sql+="and A.availd=0 ";
             }
         }
         System.out.println("size:"+params.size());
@@ -440,97 +436,13 @@ public class BookSearchPanel extends JPanel {
                     rset.getString("bname"),
                     rset.getString("author"),
                     rset.getString("isbn"),
-                    "", // 出版社字段留空
                     pubYear,
                     rset.getString("category"),
-                    available,
+                    rset.getString("availd"),
                     status
             });
         }
 
-        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            StringBuilder sqlBuilder = new StringBuilder();
-            sqlBuilder.append("SELECT bi.bid, bi.bname, bi.author, bi.isbn, ");
-            sqlBuilder.append("bi.publication_year, bi.category, bc.avalid, bc.total ");
-            sqlBuilder.append("FROM bookinfo bi ");
-            sqlBuilder.append("JOIN book_count bc ON bi.bname = bc.bname AND bi.author = bc.author ");
-            sqlBuilder.append("WHERE 1=1 ");
-
-            List<Object> params = new ArrayList<>();
-
-            if (!title.isEmpty()) {
-                sqlBuilder.append("AND bi.bname LIKE ? ");
-                params.add("%" + title + "%");
-            }
-
-            if (!author.isEmpty()) {
-                sqlBuilder.append("AND bi.author LIKE ? ");
-                params.add("%" + author + "%");
-            }
-
-            if (!isbn.isEmpty()) {
-                sqlBuilder.append("AND bi.isbn LIKE ? ");
-                params.add("%" + isbn + "%");
-            }
-
-            // 注意：出版社字段在你的数据库中不存在，此条件可移除或保留但无效
-            if (!publisher.isEmpty()) {
-                sqlBuilder.append("AND 1=2 "); // 使条件永远不成立
-            }
-
-            if (!category.equals("全部")) {
-                sqlBuilder.append("AND bi.category = ? ");
-                params.add(category);
-            }
-
-            if (publicationYear != 2000) { // 如果不是默认值
-                sqlBuilder.append("AND YEAR(bi.publication_year) = ? ");
-                params.add(publicationYear);
-            }
-
-            if (!availability.equals("全部")) {
-                if (availability.equals("可借阅")) {
-                    sqlBuilder.append("AND bc.avalid > 0 ");
-                } else {
-                    sqlBuilder.append("AND bc.avalid = 0 ");
-                }
-            }
-
-            sqlBuilder.append("ORDER BY bi.bname");
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
-                for (int i = 0; i < params.size(); i++) {
-                    pstmt.setObject(i + 1, params.get(i));
-                }
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        int available = rs.getInt("avalid");
-                        int total = rs.getInt("total");
-                        String status = available > 0 ? "可借阅" : "已借出";
-
-                        // 处理出版年份
-                        Date pubDate = rs.getDate("publication_year");
-                        int pubYear = pubDate != null ? pubDate.getYear() + 1900 : 0;
-
-                        modelBooks.addRow(new Object[]{
-                                rs.getInt("bid"),
-                                rs.getString("bname"),
-                                rs.getString("author"),
-                                rs.getString("isbn"),
-                                "", // 出版社字段留空
-                                pubYear,
-                                rs.getString("category"),
-                                available,
-                                status
-                        });
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "高级搜索失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }*/
     }
 
     // 重置搜索条件
@@ -556,11 +468,7 @@ public class BookSearchPanel extends JPanel {
                 "WHERE bi.bid = ?";
         m_query.mysqlConnect();
         ResultSet rset=m_query.selectQuery(2,new String[]{sql,String.valueOf(bookId)});
-        /*String sql = "SELECT bi.bid, bi.bname, bi.author, bi.isbn, " +
-                "bi.publication_year, bi.category, bc.avalid, bc.total " +
-                "FROM bookinfo bi " +
-                "JOIN book_count bc ON bi.bname = bc.bname AND bi.author = bc.author " +
-                "WHERE bi.bid = ?";*/
+
         if (rset.next()) {
             // 创建详情对话框
             JDialog dialog;
@@ -743,213 +651,6 @@ public class BookSearchPanel extends JPanel {
         } else {
             JOptionPane.showMessageDialog(this, "未找到图书信息！", "提示", JOptionPane.INFORMATION_MESSAGE);
         }
-        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // 联合查询bookinfo和book_count表
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setInt(1, bookId);
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        // 创建详情对话框
-                        JDialog dialog;
-                        Window mainWindow = SwingUtilities.getWindowAncestor(this);
-                        if (mainWindow != null) {
-                            dialog = new JDialog(m_frame, "图书详情", true);
-                        } else {
-                            dialog = new JDialog();
-                            dialog.setTitle("图书详情");
-                        }
-
-                        dialog.setSize(500, 400);
-                        dialog.setLocationRelativeTo(this);
-                        dialog.getContentPane().setBackground(Color.WHITE);
-
-                        JPanel panel = new JPanel(new GridBagLayout());
-                        panel.setBackground(Color.WHITE);
-                        GridBagConstraints gbc = new GridBagConstraints();
-                        gbc.insets = new Insets(10, 15, 10, 15);
-                        gbc.anchor = GridBagConstraints.WEST;
-
-                        // 标题
-                        JLabel lblTitle = new JLabel("图书详情");
-                        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 18));
-                        gbc.gridx = 0;
-                        gbc.gridy = 0;
-                        gbc.gridwidth = 2;
-                        gbc.anchor = GridBagConstraints.CENTER;
-                        gbc.insets = new Insets(15, 15, 15, 15);
-                        panel.add(lblTitle, gbc);
-
-                        // 图书信息
-                        gbc.gridwidth = 1;
-                        gbc.anchor = GridBagConstraints.EAST;
-                        gbc.insets = new Insets(5, 15, 5, 15);
-
-                        JLabel lblId = new JLabel("图书ID:");
-                        lblId.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 1;
-                        panel.add(lblId, gbc);
-
-                        JLabel lblBookId = new JLabel(rs.getString("bid"));
-                        lblBookId.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 1;
-                        panel.add(lblBookId, gbc);
-
-                        JLabel lblBookTitle = new JLabel("书名:");
-                        lblBookTitle.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 2;
-                        panel.add(lblBookTitle, gbc);
-
-                        JLabel lblTitleValue = new JLabel(rs.getString("bname"));
-                        lblTitleValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 2;
-                        panel.add(lblTitleValue, gbc);
-
-                        JLabel lblBookAuthor = new JLabel("作者:");
-                        lblBookAuthor.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 3;
-                        panel.add(lblBookAuthor, gbc);
-
-                        JLabel lblAuthorValue = new JLabel(rs.getString("author"));
-                        lblAuthorValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 3;
-                        panel.add(lblAuthorValue, gbc);
-
-                        JLabel lblBookIsbn = new JLabel("ISBN:");
-                        lblBookIsbn.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 4;
-                        panel.add(lblBookIsbn, gbc);
-
-                        JLabel lblIsbnValue = new JLabel(rs.getString("isbn"));
-                        lblIsbnValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 4;
-                        panel.add(lblIsbnValue, gbc);
-
-                        // 出版社字段留空或添加其他信息
-                        JLabel lblBookPublisher = new JLabel("出版社:");
-                        lblBookPublisher.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 5;
-                        panel.add(lblBookPublisher, gbc);
-
-                        JLabel lblPublisherValue = new JLabel("");
-                        lblPublisherValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 5;
-                        panel.add(lblPublisherValue, gbc);
-
-                        JLabel lblBookYear = new JLabel("出版年份:");
-                        lblBookYear.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 6;
-                        panel.add(lblBookYear, gbc);
-
-                        Date pubDate = rs.getDate("publication_year");
-                        int pubYear = pubDate != null ? pubDate.getYear() + 1900 : 0;
-                        JLabel lblYearValue = new JLabel(String.valueOf(pubYear));
-                        lblYearValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 6;
-                        panel.add(lblYearValue, gbc);
-
-                        JLabel lblBookCategory = new JLabel("分类:");
-                        lblBookCategory.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 7;
-                        panel.add(lblBookCategory, gbc);
-
-                        JLabel lblCategoryValue = new JLabel(rs.getString("category"));
-                        lblCategoryValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 7;
-                        panel.add(lblCategoryValue, gbc);
-
-                        JLabel lblBookTotal = new JLabel("总藏书量:");
-                        lblBookTotal.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 8;
-                        panel.add(lblBookTotal, gbc);
-
-                        JLabel lblTotalValue = new JLabel(String.valueOf(rs.getInt("total")));
-                        lblTotalValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 8;
-                        panel.add(lblTotalValue, gbc);
-
-                        JLabel lblBookAvailable = new JLabel("可借数量:");
-                        lblBookAvailable.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 9;
-                        panel.add(lblBookAvailable, gbc);
-
-                        JLabel lblAvailableValue = new JLabel(String.valueOf(rs.getInt("avalid")));
-                        lblAvailableValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 1;
-                        gbc.gridy = 9;
-                        panel.add(lblAvailableValue, gbc);
-
-                        // 状态
-                        int available = rs.getInt("avalid");
-                        String status = available > 0 ? "可借阅" : "已借出";
-
-                        JLabel lblBookStatus = new JLabel("状态:");
-                        lblBookStatus.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        gbc.gridx = 0;
-                        gbc.gridy = 10;
-                        panel.add(lblBookStatus, gbc);
-
-                        JLabel lblStatusValue = new JLabel(status);
-                        lblStatusValue.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-                        lblStatusValue.setForeground(available > 0 ? Color.GREEN : Color.RED);
-                        gbc.gridx = 1;
-                        gbc.gridy = 10;
-                        panel.add(lblStatusValue, gbc);
-
-                        // 确定按钮
-                        JButton btnOK = new JButton("确定");
-                        btnOK.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-                        btnOK.setForeground(Color.WHITE);
-                        btnOK.setBackground(new Color(49, 130, 206));
-                        btnOK.addActionListener(e -> dialog.dispose());
-                        gbc.gridx = 0;
-                        gbc.gridy = 11;
-                        gbc.gridwidth = 2;
-                        gbc.anchor = GridBagConstraints.CENTER;
-                        gbc.insets = new Insets(15, 15, 15, 15);
-                        panel.add(btnOK, gbc);
-
-                        dialog.add(panel);
-                        dialog.setVisible(true);
-                    } else {
-                        JOptionPane.showMessageDialog(this, "未找到图书信息！", "提示", JOptionPane.INFORMATION_MESSAGE);
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "查询图书详情失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }*/
     }
-
-    // 测试入口
-    /*public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("图书检索 - 校园图书管理系统");
-            BookSearchPanel panel = new BookSearchPanel();
-            frame.add(panel);
-            frame.setSize(1000, 650);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }*/
 }

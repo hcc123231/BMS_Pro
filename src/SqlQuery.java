@@ -84,25 +84,18 @@ public class SqlQuery {
             long overdueDays = ChronoUnit.DAYS.between(endLocalDate, currentLocalDate);
             long fineValue=overdueDays>0?overdueDays:0;
             //更新借阅记录
-            sql="update borrow_relation set fine=?,practical_date=?,is_ret=1";
+            sql="update borrow_relation set fine=?,practical_date=?,is_ret=1 where id=?";
             PreparedStatement pstmt3=m_conn.prepareStatement(sql);
             pstmt3.setLong(1,fineValue);
             pstmt3.setString(2,retDate);
+            pstmt3.setString(3,id);
             int affectRows=pstmt3.executeUpdate();
             if(affectRows<=0){
                 pstmt3.close();
                 throw new SQLException("更新失败");
             }
             pstmt3.close();
-            //更新bookinfo记录
-            sql="update bookinfo set available=1";
-            PreparedStatement pstmt4=m_conn.prepareStatement(sql);
-            affectRows=pstmt4.executeUpdate();
-            if(affectRows<=0){
-                pstmt4.close();
-                throw new SQLException("bookinfo更新失败");
-            }
-            pstmt4.close();
+
             //更新图书库存
             sql="update book_count set availd=availd+1 where bname=? and author=?";
             PreparedStatement pstmt5=m_conn.prepareStatement(sql);
@@ -114,6 +107,38 @@ public class SqlQuery {
                 throw new SQLException("book_count更新失败");
             }
             pstmt5.close();
+            //更新bookinfo记录
+            //先检查book_count中的availd数是否为0
+            sql="select availd from book_count where bname=? and author=?";
+            PreparedStatement pstmt7=m_conn.prepareStatement(sql);
+            pstmt7.setString(1,bookName);
+            pstmt7.setString(2,bauthor);
+            ResultSet rset7=pstmt7.executeQuery();
+            int num=-1;
+            if(rset7.next()){
+                num=rset7.getInt("availd");
+            }else{
+                rset7.close();
+                pstmt7.close();
+                throw new SQLException("availd failed to search");
+            }
+            rset7.close();
+            pstmt7.close();
+
+
+            if(num>0){
+                sql="update bookinfo set available=1 where bname=? and author=?";
+                PreparedStatement pstmt8=m_conn.prepareStatement(sql);
+                pstmt8.setString(1,bookName);
+                pstmt8.setString(2,bauthor);
+                int affRows=pstmt8.executeUpdate();
+                if(affRows<=0){
+                    pstmt8.close();
+                    throw new SQLException("failed to update bookinfo available");
+                }
+                pstmt8.close();
+            }
+
 
             m_conn.commit();
         }catch (SQLException e){
@@ -124,6 +149,8 @@ public class SqlQuery {
         }
 
     }
+
+
 
     public void borrowManagerTransaction(String bid,String uid,String borrowDate,String dueDate) throws SQLException {
         //这里的uid是指用户账号
@@ -197,8 +224,38 @@ public class SqlQuery {
                 throw new SQLException("更新失败");
             }
             pstmt5.close();
-            //第六步将bookinfo中的书本可借阅状态改为已借出并且对ref_cnt进行++操作
-            sql="update bookinfo set available=0,ref_cnt=ref_cnt+1 where bid=?";
+            //在这之前还要查询book_count数据库查找这本书的可借数是否为0，如果为0则更新bookinfo表的available为0
+            sql="select availd from book_count where bname=? and author=?";
+            PreparedStatement pstmt7=m_conn.prepareStatement(sql);
+            pstmt7.setString(1,bookName);
+            pstmt7.setString(2,author);
+            ResultSet rset7=pstmt7.executeQuery();
+            int num=-1;
+            if(rset7.next()){
+                num=rset7.getInt("availd");
+            }else{
+                rset7.close();
+                pstmt7.close();
+                throw new SQLException("availd failed to search");
+            }
+            rset7.close();
+            pstmt7.close();
+
+            System.out.println("num:"+num);
+            if(num==0){
+                sql="update bookinfo set available=0 where bname=? and author=?";
+                PreparedStatement pstmt8=m_conn.prepareStatement(sql);
+                pstmt8.setString(1,bookName);
+                pstmt8.setString(2,author);
+                int affRows=pstmt8.executeUpdate();
+                if(affRows<=0){
+                    pstmt8.close();
+                    throw new SQLException("failed to update bookinfo available");
+                }
+                pstmt8.close();
+            }
+            //第六步将bookinfo中的书本对ref_cnt进行++操作
+            sql="update bookinfo set ref_cnt=ref_cnt+1 where bid=?";
             PreparedStatement pstmt6=m_conn.prepareStatement(sql);
             pstmt6.setString(1,bid);
             affectRows=pstmt6.executeUpdate();
@@ -230,6 +287,58 @@ public class SqlQuery {
         prestm.close();
         return affectRows;
     }
+    public void bookManagerDeleteBook(int bid) throws SQLException {
+        //先利用bid去bookinfo中查找出bname和author
+        String sql="select bname,author from bookinfo where bid=?";
+        PreparedStatement stmt1=m_conn.prepareStatement(sql);
+        stmt1.setInt(1,bid);
+        ResultSet rs1=stmt1.executeQuery();
+        if(!rs1.next()){
+            rs1.close();
+            stmt1.close();
+            throw new SQLException("can not find author and bname");
+        }
+        String bname=rs1.getString("bname");
+        String author=rs1.getString("author");
+        rs1.close();;
+        stmt1.close();
+
+        //然后开始到reservation表中删除与bid相关的记录
+        sql="delete from reservation where bid=?";
+        PreparedStatement stmt2=m_conn.prepareStatement(sql);
+        stmt2.setInt(1,bid);
+        int affectRows=stmt2.executeUpdate();
+
+        stmt2.close();
+
+        //然后删除book_count中的与bid相关的记录
+        sql="delete from book_count where bname=? and author =?";
+        PreparedStatement stmt3=m_conn.prepareStatement(sql);
+        stmt3.setString(1,bname);
+        stmt3.setString(2,author);
+        affectRows=stmt3.executeUpdate();
+
+        stmt3.close();
+
+        //然后到borrow_relation中删除
+        sql="delete from borrow_relation where bid=?";
+        PreparedStatement stmt4=m_conn.prepareStatement(sql);
+        stmt4.setInt(1,bid);
+        affectRows=stmt4.executeUpdate();
+
+        stmt4.close();
+
+        //最后到bookinfo中删除
+        sql="delete from bookinfo where bid=?";
+        PreparedStatement stmt5=m_conn.prepareStatement(sql);
+        stmt5.setInt(1,bid);
+        affectRows=stmt5.executeUpdate();
+
+        stmt5.close();
+
+
+    }
+
 
 
 }

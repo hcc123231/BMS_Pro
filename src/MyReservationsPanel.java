@@ -6,12 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MyReservationsPanel extends JPanel {
-    // 数据库配置
-    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的密码";*/
 
-    // 当前登录用户ID（实际应从系统登录态获取）
+
     private int currentUserId ;
 
     // 组件声明
@@ -42,7 +38,7 @@ public class MyReservationsPanel extends JPanel {
         add(titleLabel, BorderLayout.NORTH);
 
         // 预约表格
-        String[] tableColumns = {"预约ID", "图书ID", "书名", "作者", "预约日期", "状态", "操作"};
+        String[] tableColumns = {"预约ID", "图书ID", "书名", "作者", "预约日期"};
         reservationModel = new DefaultTableModel(tableColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -66,7 +62,13 @@ public class MyReservationsPanel extends JPanel {
         btnCancelReservation.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnCancelReservation.setForeground(Color.WHITE);
         btnCancelReservation.setBackground(new Color(220, 53, 69));
-        //btnCancelReservation.addActionListener(e -> cancelReservation());
+        btnCancelReservation.addActionListener(e -> {
+            try {
+                cancelReservation();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
         buttonPanel.add(btnCancelReservation);
 
         btnRefresh = new JButton("刷新记录");
@@ -95,14 +97,6 @@ public class MyReservationsPanel extends JPanel {
             //String status = rset.getString("status");
             String actionBtn = "";
 
-            // 根据状态显示操作按钮
-            /*if ("预约中".equals(status)) {
-                actionBtn = "取消预约";
-            } else if ("已生效".equals(status)) {
-                actionBtn = "等待取书";
-            } else if ("已过期".equals(status)) {
-                actionBtn = "预约已过期";
-            }*/
 
             reservationModel.addRow(new Object[]{
                     rset.getInt("id"),
@@ -115,56 +109,11 @@ public class MyReservationsPanel extends JPanel {
                     actionBtn
             });
         }
-        /*String sql = "SELECT " +
-                "r.id AS reservation_id, " +
-                "b.id AS book_id, " +
-                "b.title, " +
-                "b.author, " +
-                "r.reservation_date, " +
-                "r.status " +
-                "FROM reservations r " +
-                "JOIN books b ON r.book_id = b.id " +
-                "WHERE r.user_id = ? " +
-                "ORDER BY r.reservation_date DESC";
 
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, currentUserId);
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                String status = rs.getString("status");
-                String actionBtn = "";
-
-                // 根据状态显示操作按钮
-                if ("预约中".equals(status)) {
-                    actionBtn = "取消预约";
-                } else if ("已生效".equals(status)) {
-                    actionBtn = "等待取书";
-                } else if ("已过期".equals(status)) {
-                    actionBtn = "预约已过期";
-                }
-
-                reservationModel.addRow(new Object[]{
-                        rs.getInt("reservation_id"),
-                        rs.getInt("book_id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        formatDate(rs.getDate("reservation_date")),
-                        status,
-                        actionBtn
-                });
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "加载预约记录失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }*/
     }
 
     // 取消预约
-    /*private void cancelReservation() {
+    private void cancelReservation() throws SQLException {
         int selectedRow = reservationTable.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "请选择要取消的预约！", "提示", JOptionPane.INFORMATION_MESSAGE);
@@ -172,12 +121,7 @@ public class MyReservationsPanel extends JPanel {
         }
 
         int reservationId = (int) reservationModel.getValueAt(selectedRow, 0);
-        String status = (String) reservationModel.getValueAt(selectedRow, 5);
 
-        if (!"预约中".equals(status)) {
-            JOptionPane.showMessageDialog(this, "该预约不可取消（状态：" + status + "）", "提示", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
 
         // 确认对话框
         int confirm = JOptionPane.showConfirmDialog(
@@ -190,28 +134,16 @@ public class MyReservationsPanel extends JPanel {
 
         if (confirm == JOptionPane.YES_OPTION) {
             // 更新预约状态为"已取消"
-            String sql = "UPDATE reservations " +
-                    "SET status = '已取消', cancellation_date = NOW() " +
-                    "WHERE id = ? AND user_id = ?";
-
-            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-                pstmt.setInt(1, reservationId);
-                pstmt.setInt(2, currentUserId);
-
-                int affectedRows = pstmt.executeUpdate();
-                if (affectedRows > 0) {
-                    JOptionPane.showMessageDialog(this, "预约取消成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                    loadReservations(); // 刷新表格
-                } else {
-                    JOptionPane.showMessageDialog(this, "取消失败，请重试！", "错误", JOptionPane.ERROR_MESSAGE);
-                }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "取消失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            String sql="delete from reservation where id=?";
+            m_query.mysqlConnect();
+            int affectRows=m_query.updateQuery(2,new String[]{sql,String.valueOf(reservationId)});
+            if (affectRows > 0) {
+                JOptionPane.showMessageDialog(this, "预约取消成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                loadReservations(); // 刷新表格
+            } else {
+                JOptionPane.showMessageDialog(this, "取消失败，请重试！", "错误", JOptionPane.ERROR_MESSAGE);
             }
+
         }
     }
 
@@ -222,18 +154,5 @@ public class MyReservationsPanel extends JPanel {
         return sdf.format(date);
     }
 
-    // 主方法
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("我的预约 - 校园图书管理系统");
-            frame.setSize(900, 500);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setLocationRelativeTo(null);
 
-            MyReservationsPanel panel = new MyReservationsPanel();
-            frame.add(panel);
-
-            frame.setVisible(true);
-        });
-    }*/
 }

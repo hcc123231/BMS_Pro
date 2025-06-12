@@ -7,10 +7,6 @@ import java.time.format.DateTimeFormatter;
 
 
 public class BorrowManagementPanel extends JPanel {
-    // MySQL 配置
-    /*private static final String DB_URL = "jdbc:mysql://localhost:3306/library_db?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "你的密码";*/
 
     // 标签页和面板
     private JTabbedPane tabbedPane;
@@ -252,63 +248,6 @@ public class BorrowManagementPanel extends JPanel {
         }catch (SQLException e){
             JOptionPane.showMessageDialog(this, "借阅失败：" + e.getMessage(), "错误提示", JOptionPane.ERROR_MESSAGE);
         }
-
-
-        /*try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            conn.setAutoCommit(false); // 开启事务
-            try {
-                // 检查图书是否可借
-                String sqlCheckBook = "SELECT available_quantity FROM books WHERE id = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sqlCheckBook)) {
-                    pstmt.setInt(1, Integer.parseInt(bookId));
-                    ResultSet rs = pstmt.executeQuery();
-                    if (!rs.next() || rs.getInt("available_quantity") <= 0) {
-                        throw new SQLException("图书不可借或不存在");
-                    }
-                }
-
-                // 检查用户是否存在
-                String sqlCheckUser = "SELECT user_id FROM users WHERE user_id = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sqlCheckUser)) {
-                    pstmt.setInt(1, Integer.parseInt(userId));
-                    ResultSet rs = pstmt.executeQuery();
-                    if (!rs.next()) {
-                        throw new SQLException("用户不存在");
-                    }
-                }
-
-                // 插入借阅记录
-                String sqlInsert = "INSERT INTO borrow_records (user_id, book_id, borrow_date, due_date, status) " +
-                        "VALUES (?, ?, ?, ?, '借阅中')";
-                try (PreparedStatement pstmt = conn.prepareStatement(sqlInsert)) {
-                    pstmt.setInt(1, Integer.parseInt(userId));
-                    pstmt.setInt(2, Integer.parseInt(bookId));
-                    pstmt.setString(3, borrowDate);
-                    pstmt.setString(4, dueDate);
-                    pstmt.executeUpdate();
-                }
-
-                // 更新图书库存
-                String sqlUpdateBook = "UPDATE books SET available_quantity = available_quantity - 1 WHERE id = ?";
-                try (PreparedStatement pstmt = conn.prepareStatement(sqlUpdateBook)) {
-                    pstmt.setInt(1, Integer.parseInt(bookId));
-                    pstmt.executeUpdate();
-                }
-
-                conn.commit(); // 提交事务
-                JOptionPane.showMessageDialog(this, "借阅成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-                clearBorrowForm();
-                loadHistory(); // 刷新记录
-            } catch (SQLException e) {
-                conn.rollback(); // 回滚事务
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-        }*/
     }
 
     // 加载所有借阅记录
@@ -376,16 +315,4 @@ public class BorrowManagementPanel extends JPanel {
         txtDueDate.setText(LocalDate.now().plusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     }
 
-    // 主方法测试
-    /*public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("借阅管理 - 校园图书管理系统");
-            BorrowManagementPanel panel = new BorrowManagementPanel();
-            frame.add(panel);
-            frame.setSize(1000, 650);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }*/
 }

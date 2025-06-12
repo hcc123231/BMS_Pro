@@ -1,74 +1,55 @@
-import org.w3c.dom.ls.LSOutput;
-//登录类，弹出登录界面
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.SQLException;
-import java.sql.SQLOutput;
 
 public class BmsLogin {
-    public BmsLogin(){
-        frmGlobal=new JFrame("登录");
-        pnGlobal=new JPanel();
-        btnLogin=new JButton("登录");
+    public BmsLogin() {
+        frmGlobal = new JFrame("登录");
+        pnGlobal = new JPanel();
+        btnLogin = new JButton("登录");
         btnLogin.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("clicked");
-                String account =edtAccount.getText();
-                String password=edtPassword.getText();
-                SqlQuery query=new SqlQuery();
-                query.mysqlConnect();
-                String sql="select uid from user where account=? and password=?";
-                try {
-                    query.selectQuery(3,new String[]{sql,account,password});
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
+                String account = edtAccount.getText();
+                // 获取密码
+                char[] passwordChars = edtPassword.getPassword();
+                String password = new String(passwordChars);
+                // 这里可以添加登录验证逻辑
+                System.out.println("点击了登录按钮");
             }
         });
-        btnRegister=new JButton(("注册"));
-        /*btnRegister.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("clicked register");
-                RegistrationForm registerInterface=new RegistrationForm();
-                frmGlobal.setVisible(false);
-                registerInterface.setVisible(true);
-            }
-        });*/
-        pnButtn=new JPanel();
+        btnRegister = new JButton("注册");
 
-        edtAccount=new JEditorPane();
-        edtAccount.setMaximumSize(new Dimension(300,30));
-        edtPassword=new JEditorPane();
-        edtPassword.setMaximumSize(new Dimension(300,30));
-        labAccount=new JLabel("账号：");
-        labPassword=new JLabel("密码：");
-        pnAccount=new JPanel();
-        pnPassword=new JPanel();
-        //blGlobal=new BoxLayout(pnGlobal,BoxLayout.Y_AXIS);
-        glGlobal=new GridLayout(4,1);
-        blAccount=new BoxLayout(pnAccount,BoxLayout.X_AXIS);
-        blPassword=new BoxLayout(pnPassword,BoxLayout.X_AXIS);
-        blButtn=new BoxLayout(pnButtn,BoxLayout.X_AXIS);
+        pnButtn = new JPanel();
 
+        edtAccount = new JEditorPane();
+        edtAccount.setMaximumSize(new Dimension(300, 30));
+        // 使用 JPasswordField 替代 JEditorPane 用于密码输入
+        edtPassword = new JPasswordField();
+        edtPassword.setMaximumSize(new Dimension(300, 30));
+        labAccount = new JLabel("账号：");
+        labPassword = new JLabel("密码：");
+        pnAccount = new JPanel();
+        pnPassword = new JPanel();
+        glGlobal = new GridLayout(4, 1);
+        blAccount = new BoxLayout(pnAccount, BoxLayout.X_AXIS);
+        blPassword = new BoxLayout(pnPassword, BoxLayout.X_AXIS);
+        blButtn = new BoxLayout(pnButtn, BoxLayout.X_AXIS);
 
         initLayout();
     }
-    public void initLayout(){
-        //pnGlobal.setLayout(blGlobal);
+
+    public void initLayout() {
         pnGlobal.setLayout(glGlobal);
 
         pnAccount.setLayout(blAccount);
-        pnAccount.add(Box.createHorizontalStrut(100));
+        pnAccount.add(Box.createHorizontalStrut(80));
         pnAccount.add(labAccount);
         pnAccount.add(edtAccount);
 
         pnPassword.setLayout(blPassword);
-        pnPassword.add(Box.createHorizontalStrut(100));
+        pnPassword.add(Box.createHorizontalStrut(80));
         pnPassword.add(labPassword);
         pnPassword.add(edtPassword);
 
@@ -81,31 +62,32 @@ public class BmsLogin {
         frmGlobal.add(pnGlobal);
 
         pnGlobal.add(pnAccount);
-
         pnGlobal.add(pnPassword);
-
         pnGlobal.add(pnButtn);
-        frmGlobal.setSize(500,400);
+
+        frmGlobal.setSize(500, 400);
         frmGlobal.setResizable(false);
         frmGlobal.setVisible(true);
     }
-    public JFrame frmGlobal;//登录界面的全局框架
+
+    public JFrame frmGlobal; // 登录界面的全局框架
     private JPanel pnGlobal;
-    public JButton btnLogin;//登录界面的登录按钮
-    public JButton btnRegister;//登录界面的注册按钮
+    public JButton btnLogin; // 登录界面的登录按钮
+    public JButton btnRegister; // 登录界面的注册按钮
     private JPanel pnButtn;
 
     public JEditorPane edtAccount;
-    public JEditorPane edtPassword;
+    public JPasswordField edtPassword; // 使用 JPasswordField 替代 JEditorPane 用于密码输入
     private JLabel labAccount;
     private JLabel labPassword;
     private JPanel pnAccount;
     private JPanel pnPassword;
-    //private BoxLayout blGlobal;
     private GridLayout glGlobal;
-    private BoxLayout blAccount;//第一行也就是账号行的一个横向布局管理器
-    private BoxLayout blPassword;//第二行也就是密码行的横向布局管理器
+    private BoxLayout blAccount; // 第一行也就是账号行的一个横向布局管理器
+    private BoxLayout blPassword; // 第二行也就是密码行的横向布局管理器
     private BoxLayout blButtn;
 
-
+    public static void main(String[] args) {
+        new BmsLogin();
+    }
 }

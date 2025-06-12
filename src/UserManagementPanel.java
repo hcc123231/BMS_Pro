@@ -6,21 +6,19 @@ import java.sql.*;
 
 
 public class UserManagementPanel extends JPanel {
-    // MySQL 配置
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/bms_db?useSSL=false&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Lqf123000@";
-
     // 组件声明
     private JPanel mainPanel;
-    private JTextField txtUserId, txtUsername, txtSearch;
-    private JButton btnAdd, btnUpdate, btnDelete, btnSearch, btnRefresh;
+    private JTextField txtUserId, txtUsername, txtSearch,txtPassword;
+    private JButton btnAdd, btnDelete, btnSearch, btnRefresh;
     private JTable tableUsers;
     private DefaultTableModel modelUsers;
     private JComboBox<String> roleComboBox;
+    private SqlQuery m_query;
 
-    public UserManagementPanel() {
+
+    public UserManagementPanel(SqlQuery query) {
         setBackground(Color.WHITE);
+        m_query=query;
         setLayout(new BorderLayout());
 
         initComponents();
@@ -59,7 +57,7 @@ public class UserManagementPanel extends JPanel {
         searchPanel.add(btnRefresh);
 
         // 中间表格区域
-        String[] columns = {"用户ID", "用户名", "角色", "创建时间", "借阅数量"};
+        String[] columns = {"用户ID", "用户名", "角色", "创建时间"};
         modelUsers = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -129,7 +127,7 @@ public class UserManagementPanel extends JPanel {
         gbc.gridy = 2;
         formPanel.add(lblPassword, gbc);
 
-        JPasswordField txtPassword = new JPasswordField(15);
+        txtPassword = new JPasswordField(15);
         gbc.gridx = 1;
         gbc.gridy = 2;
         formPanel.add(txtPassword, gbc);
@@ -158,18 +156,15 @@ public class UserManagementPanel extends JPanel {
         btnAdd.addActionListener(e -> addUser());
         buttonPanel.add(btnAdd);
 
-        btnUpdate = new JButton("更新用户");
-        btnUpdate.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        btnUpdate.setForeground(Color.WHITE);
-        btnUpdate.setBackground(new Color(102, 153, 204));
-        btnUpdate.addActionListener(e -> updateUser());
-        buttonPanel.add(btnUpdate);
-
         btnDelete = new JButton("删除用户");
         btnDelete.setFont(new Font("微软雅黑", Font.BOLD, 14));
         btnDelete.setForeground(Color.WHITE);
         btnDelete.setBackground(new Color(220, 53, 69));
+
+
         btnDelete.addActionListener(e -> deleteUser());
+
+
         buttonPanel.add(btnDelete);
 
         gbc.gridx = 0;
@@ -188,33 +183,22 @@ public class UserManagementPanel extends JPanel {
     // 加载所有用户
     private void loadUsers() {
         modelUsers.setRowCount(0); // 清空表格
-
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // 修改查询语句以匹配user表结构
-            String sql = "SELECT u.uid AS user_id, u.account AS username, " +
-                    "CASE WHEN u.chara = '0' THEN '普通用户' ELSE '管理员' END AS role, " +
-                    "u.created AS create_time, " +
-                    "(SELECT COUNT(*) FROM borrow_relation br WHERE br.uid = u.uid AND br.practical_date > CURDATE()) AS borrow_count " +
-                    "FROM `user` u " +
-                    "ORDER BY u.created DESC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
-
-                while (rs.next()) {
-                    modelUsers.addRow(new Object[]{
-                            rs.getInt("user_id"),
-                            rs.getString("username"),
-                            rs.getString("role"),
-                            rs.getString("create_time"),
-                            rs.getInt("borrow_count")
-                    });
-                }
+        try{
+            String sql="select uid,account,chara,created from user";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(1,new String[]{sql});
+            while (rset.next()) {
+                modelUsers.addRow(new Object[]{
+                        rset.getInt("uid"),
+                        rset.getString("account"),
+                        rset.getString("chara"),
+                        rset.getString("created")
+                });
             }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "加载用户列表失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
+
     }
 
     // 搜索功能
@@ -226,44 +210,32 @@ public class UserManagementPanel extends JPanel {
             loadUsers(); // 关键词为空时加载全部
             return;
         }
-
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            // 修改搜索查询以匹配新表结构
-            String sql = "SELECT u.uid AS user_id, u.account AS username, " +
-                    "CASE WHEN u.chara = '0' THEN '普通用户' ELSE '管理员' END AS role, " +
-                    "u.created AS create_time, " +
-                    "(SELECT COUNT(*) FROM borrow_relation br WHERE br.uid = u.uid AND br.practical_date > CURDATE()) AS borrow_count " +
-                    "FROM `user` u " +
-                    "WHERE u.account LIKE ? OR CAST(u.uid AS CHAR) LIKE ? " +
-                    "ORDER BY u.created DESC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, "%" + keyword + "%");
-                pstmt.setString(2, "%" + keyword + "%");
-
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        modelUsers.addRow(new Object[]{
-                                rs.getInt("user_id"),
-                                rs.getString("username"),
-                                rs.getString("role"),
-                                rs.getString("create_time"),
-                                rs.getInt("borrow_count")
-                        });
-                    }
-                }
+        try{
+            String sql="select uid,account,chara,created from user where uid like ? or account like ? or created like ?";
+            String param="%"+keyword+"%";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(4,new String[]{sql,param,param,param});
+            while (rset.next()) {
+                modelUsers.addRow(new Object[]{
+                        rset.getInt("uid"),
+                        rset.getString("account"),
+                        rset.getString("chara"),
+                        rset.getString("created")
+                });
             }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "搜索用户失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
+
     }
 
     // 添加用户
     private void addUser() {
         String username = txtUsername.getText().trim();
         String role = (String) roleComboBox.getSelectedItem();
-        char chara = "管理员".equals(role) ? '1' : '0'; // 角色转换
+        //String userId=txtUserId.getText().trim();
+        String passwd=txtPassword.getText().trim();
+        String chara = "管理员".equals(role) ? "2" : "0"; // 角色转换
 
         // 非空校验
         if (username.isEmpty()) {
@@ -272,96 +244,39 @@ public class UserManagementPanel extends JPanel {
         }
 
         // 检查用户名是否已存在
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT uid FROM `user` WHERE account = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
-                pstmt.setString(1, username);
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) {
-                    JOptionPane.showMessageDialog(this, "用户名已存在！", "错误", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
+        try{
+            String sql="select count(*) as cnt from user where account=?";
+
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,username});
+            rset.next();
+            if (rset.getInt("cnt")>=1) {
+                JOptionPane.showMessageDialog(this, "用户名已存在！", "错误", JOptionPane.ERROR_MESSAGE);
+                throw new SQLException("失败");
             }
 
-            // 添加用户（注意：number字段需要默认值或用户输入）
-            String sqlInsert = "INSERT INTO `user` (account, `password`, number, chara, created) " +
-                    "VALUES (?, '123456', 'default_number', ?, NOW())";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlInsert)) {
-                pstmt.setString(1, username);
-                pstmt.setString(2, String.valueOf(chara));
-                pstmt.executeUpdate();
-            }
-
-            JOptionPane.showMessageDialog(this, "用户添加成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-            clearForm();
-            loadUsers();
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "添加用户失败：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            throw new RuntimeException(e);
         }
-    }
+        // 添加用户（注意：number字段需要默认值或用户输入）
+        try{
+            String sql="insert into user (account,password,chara,created) value (?,?,?,now())";
 
-    // 更新用户
-    private void updateUser() {
-        String userIdStr = txtUserId.getText().trim();
-        String username = txtUsername.getText().trim();
-        String role = (String) roleComboBox.getSelectedItem();
-        char chara = "管理员".equals(role) ? '1' : '0'; // 角色转换
-
-        // 非空校验
-        if (userIdStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请先选择要更新的用户！", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        if (username.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请输入用户名！", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // 数字校验
-        int userId;
-        try {
-            userId = Integer.parseInt(userIdStr);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "用户ID必须是数字！", "错误", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // 检查用户名是否已被其他用户使用
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT uid FROM `user` WHERE account = ? AND uid != ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
-                pstmt.setString(1, username);
-                pstmt.setInt(2, userId);
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) {
-                    JOptionPane.showMessageDialog(this, "用户名已被其他用户使用！", "错误", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
+            m_query.mysqlConnect();
+            int affectRows=m_query.updateQuery(4,new String[]{sql,username,passwd,chara});
+            if (affectRows<=0) {
+                JOptionPane.showMessageDialog(this, "用户添加失败！", "错误", JOptionPane.ERROR_MESSAGE);
+                throw new SQLException("失败");
             }
-
-            // 更新用户（注意：number字段未修改，如需修改需添加输入框）
-            String sqlUpdate = "UPDATE `user` SET account = ?, chara = ? WHERE uid = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlUpdate)) {
-                pstmt.setString(1, username);
-                pstmt.setString(2, String.valueOf(chara));
-                pstmt.setInt(3, userId);
-                pstmt.executeUpdate();
-            }
-
-            JOptionPane.showMessageDialog(this, "用户更新成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-            clearForm();
-            loadUsers();
+            JOptionPane.showMessageDialog(this, "添加成功！", "ok", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "更新用户失败：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            throw new RuntimeException(e);
         }
+
     }
 
-    // 删除用户
     // 删除用户
     private void deleteUser() {
         String userIdStr = txtUserId.getText().trim();
@@ -391,32 +306,30 @@ public class UserManagementPanel extends JPanel {
         }
 
         // 检查用户是否有未归还的图书（practical_date > CURDATE()表示未归还）
-        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-            String sqlCheck = "SELECT COUNT(*) AS count FROM borrow_relation WHERE uid = ? AND practical_date > CURDATE()";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlCheck)) {
-                pstmt.setInt(1, userId);
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next() && rs.getInt("count") > 0) {
-                    JOptionPane.showMessageDialog(this, "该用户有未归还的图书，无法删除！", "错误", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
+        try{
+            String sql="select count(*) as cnt from borrow_relation where uid=? and practical_date is null or practical_date is not null and practical_date>curdate() ";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,userIdStr});
+            if (rset.next() && rset.getInt("cnt") > 0) {
+                JOptionPane.showMessageDialog(this, "该用户有未归还的图书，无法删除！", "错误", JOptionPane.ERROR_MESSAGE);
+                throw new SQLException("有未归de地图书");
             }
-
-            // 删除用户
-            String sqlDelete = "DELETE FROM `user` WHERE uid = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sqlDelete)) {
-                pstmt.setInt(1, userId);
-                pstmt.executeUpdate();
-            }
-
-            JOptionPane.showMessageDialog(this, "用户删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
-            clearForm();
-            loadUsers();
 
         } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "删除用户失败：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            throw new RuntimeException(e);
         }
+        try{
+            String sql="delete from user where uid=? ";
+            m_query.mysqlConnect();
+            int affectRows=m_query.updateQuery(2,new String[]{sql,userIdStr});
+            if(affectRows>=1) {
+                JOptionPane.showMessageDialog(this, "用户删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     // 清空表单
@@ -426,16 +339,4 @@ public class UserManagementPanel extends JPanel {
         roleComboBox.setSelectedIndex(0);
     }
 
-    // 测试入口
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("用户管理 - 校园图书管理系统");
-            UserManagementPanel panel = new UserManagementPanel();
-            frame.add(panel);
-            frame.setSize(900, 600);
-            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
 }
