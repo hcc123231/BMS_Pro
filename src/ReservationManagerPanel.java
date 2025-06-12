@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -11,7 +12,8 @@ import javax.swing.table.AbstractTableModel;
 
 // 预约管理面板（核心业务 + 优化后的 UI）
 public class ReservationManagerPanel extends JPanel {
-    private final Connection conn; // 设为final，因为初始化后不再修改
+    private SqlQuery m_query; // 设为final，因为初始化后不再修改
+
     private JTable reservationTable;
     private ReservationTableModel tableModel;
     private static final Logger logger = Logger.getLogger(ReservationManagerPanel.class.getName());
@@ -21,8 +23,9 @@ public class ReservationManagerPanel extends JPanel {
     // 按钮组件（用于控制禁用状态）
     private JButton deleteButton;
 
-    public ReservationManagerPanel(Connection conn) {
-        this.conn = conn;
+    public ReservationManagerPanel(SqlQuery query) {
+        m_query=query;
+
         setLayout(new BorderLayout(0, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         initializeUI();
@@ -110,25 +113,20 @@ public class ReservationManagerPanel extends JPanel {
 
     private List<Reservation> fetchReservationsFromDatabase() throws SQLException {
         List<Reservation> reservations = new ArrayList<>();
-        String sql = "SELECT r.id, r.user_id, u.username, r.book_id, b.title, r.reservation_date, r.expiration_date, r.status " +
-                "FROM reservations r " +
-                "JOIN users u ON r.user_id = u.id " +
-                "JOIN books b ON r.book_id = b.id";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                Reservation reservation = new Reservation();
-                reservation.setId(rs.getInt("id"));
-                reservation.setUserId(rs.getInt("user_id"));
-                reservation.setUsername(rs.getString("username"));
-                reservation.setBookId(rs.getInt("book_id"));
-                reservation.setBookTitle(rs.getString("title"));
-                reservation.setReservationDate(rs.getDate("reservation_date"));
-                reservation.setExpirationDate(rs.getDate("expiration_date"));
-                reservation.setStatus(rs.getString("status"));
-                reservations.add(reservation);
-            }
+        String sql="select B.bname,A.bid,A.uid,A.id,A.start_date,A.end_date from reservation as A inner join bookinfo as B on A.bid=B.bid";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(1,new String[]{sql});
+        while (rset.next()) {
+            Reservation reservation = new Reservation();
+            reservation.setId(rset.getInt("id"));
+            reservation.setUserId(rset.getInt("uid"));
+            reservation.setBookId(rset.getInt("bid"));
+            reservation.setBookTitle(rset.getString("bname"));
+            reservation.setReservationDate(rset.getDate("start_date"));
+            reservation.setExpirationDate(rset.getDate("end_date"));
+            reservations.add(reservation);
         }
+        m_query.mysqlDisconnect();
         return reservations;
     }
 
@@ -146,28 +144,19 @@ public class ReservationManagerPanel extends JPanel {
 
     private List<Reservation> searchReservationsFromDatabase(String keyword) throws SQLException {
         List<Reservation> reservations = new ArrayList<>();
-        String sql = "SELECT r.id, r.user_id, u.username, r.book_id, b.title, r.reservation_date, r.expiration_date, r.status " +
-                "FROM reservations r " +
-                "JOIN users u ON r.user_id = u.id " +
-                "JOIN books b ON r.book_id = b.id " +
-                "WHERE u.username LIKE ? OR b.title LIKE ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Reservation reservation = new Reservation();
-                    reservation.setId(rs.getInt("id"));
-                    reservation.setUserId(rs.getInt("user_id"));
-                    reservation.setUsername(rs.getString("username"));
-                    reservation.setBookId(rs.getInt("book_id"));
-                    reservation.setBookTitle(rs.getString("title"));
-                    reservation.setReservationDate(rs.getDate("reservation_date"));
-                    reservation.setExpirationDate(rs.getDate("expiration_date"));
-                    reservation.setStatus(rs.getString("status"));
-                    reservations.add(reservation);
-                }
-            }
+        String sql="select B.bname,A.bid,A.uid,A.id,A.start_date,A.end_date from reservation as A inner join bookinfo as B on A.bid=B.bid where A.id like ? or A.uid like ? or A.bid like ?";
+        String param="%"+keyword+"%";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(4,new String[]{sql,param,param,param});
+        while (rset.next()) {
+            Reservation reservation = new Reservation();
+            reservation.setId(rset.getInt("id"));
+            reservation.setUserId(rset.getInt("uid"));
+            reservation.setBookId(rset.getInt("bid"));
+            reservation.setBookTitle(rset.getString("bname"));
+            reservation.setReservationDate(rset.getDate("start_date"));
+            reservation.setExpirationDate(rset.getDate("end_date"));
+            reservations.add(reservation);
         }
         return reservations;
     }
@@ -278,20 +267,16 @@ public class ReservationManagerPanel extends JPanel {
     }
 
     private void addReservationToDatabase(int userId, int bookId, java.sql.Date reservationDate, java.sql.Date expirationDate) throws SQLException {
-        String sql = "INSERT INTO reservations (user_id, book_id, reservation_date, expiration_date, status) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            pstmt.setInt(2, bookId);
-            pstmt.setDate(3, reservationDate);
-            pstmt.setDate(4, expirationDate);
-            pstmt.setString(5, "待处理");
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows > 0) {
-                JOptionPane.showMessageDialog(this, "预约添加成功", "成功", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "预约添加失败", "错误", JOptionPane.ERROR_MESSAGE);
-            }
+        String sql = "INSERT INTO reservation (uid, bid, start_date, end_date) VALUES (?, ?, ?, ?)";
+        m_query.mysqlConnect();
+
+        int affectRows=m_query.updateQuery(5,new String[]{sql,String.valueOf(userId),String.valueOf(bookId),reservationDate.toString(),expirationDate.toString()});
+        if (affectRows > 0) {
+            JOptionPane.showMessageDialog(this, "预约添加成功", "成功", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "预约添加失败", "错误", JOptionPane.ERROR_MESSAGE);
         }
+
     }
 
     private void cancelSelectedReservation() {
@@ -301,11 +286,11 @@ public class ReservationManagerPanel extends JPanel {
             return;
         }
         int reservationId = tableModel.getReservationAt(selectedRow).getId();
-        String status = tableModel.getReservationAt(selectedRow).getStatus();
-        if (!"待处理".equals(status)) {
-            JOptionPane.showMessageDialog(this, "只有'待处理'状态的预约可以取消", "提示", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
+        //String status = tableModel.getReservationAt(selectedRow).getStatus();
+        //if (!"待处理".equals(status)) {
+            //JOptionPane.showMessageDialog(this, "只有'待处理'状态的预约可以取消", "提示", JOptionPane.INFORMATION_MESSAGE);
+            //return;
+       //}
         int confirm = JOptionPane.showConfirmDialog(this, "确定要取消这个预约吗？", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
@@ -319,35 +304,35 @@ public class ReservationManagerPanel extends JPanel {
     }
 
     private void cancelReservationInDatabase(int reservationId) throws SQLException {
-        String sql = "UPDATE reservations SET status = '已取消' WHERE id = ? AND status = '待处理'";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, reservationId);
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows > 0) {
-                JOptionPane.showMessageDialog(this, "预约已取消", "成功", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "预约取消失败，可能状态已变更", "错误", JOptionPane.ERROR_MESSAGE);
-            }
+        String sql = "delete from reservation where id=?";
+        m_query.mysqlConnect();
+        int affectRow=m_query.updateQuery(2,new String[]{sql,String.valueOf(reservationId)});
+        if (affectRow > 0) {
+            JOptionPane.showMessageDialog(this, "预约已取消", "成功", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "预约取消失败，可能状态已变更", "错误", JOptionPane.ERROR_MESSAGE);
         }
+
+
     }
 
     // 预约数据模型类
     private static class Reservation {
         private int id;
         private int userId;
-        private String username;
+        //private String username;
         private int bookId;
         private String bookTitle;
         private java.sql.Date reservationDate;
         private java.sql.Date expirationDate;
-        private String status;
+        //private String status;
 
         public int getId() { return id; }
         public void setId(int id) { this.id = id; }
         public int getUserId() { return userId; }
         public void setUserId(int userId) { this.userId = userId; }
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+        //public String getUsername() { return username; }
+        //public void setUsername(String username) { this.username = username; }
         public int getBookId() { return bookId; }
         public void setBookId(int bookId) { this.bookId = bookId; }
         public String getBookTitle() { return bookTitle; }
@@ -356,14 +341,14 @@ public class ReservationManagerPanel extends JPanel {
         public void setReservationDate(java.sql.Date reservationDate) { this.reservationDate = reservationDate; }
         public java.sql.Date getExpirationDate() { return expirationDate; }
         public void setExpirationDate(java.sql.Date expirationDate) { this.expirationDate = expirationDate; }
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        //public String getStatus() { return status; }
+        //public void setStatus(String status) { this.status = status; }
     }
 
     // 表格模型类
     private static class ReservationTableModel extends AbstractTableModel {
         private List<Reservation> reservations = new ArrayList<>();
-        private String[] columnNames = {"ID", "用户ID", "用户名", "图书ID", "图书标题", "预约日期", "过期日期", "状态"};
+        private String[] columnNames = {"ID", "用户ID", "图书ID", "图书标题", "预约日期", "过期日期"};
 
         public void setReservations(List<Reservation> reservations) {
             this.reservations = reservations;
@@ -394,12 +379,12 @@ public class ReservationManagerPanel extends JPanel {
             switch (columnIndex) {
                 case 0: return reservation.getId();
                 case 1: return reservation.getUserId();
-                case 2: return reservation.getUsername();
-                case 3: return reservation.getBookId();
-                case 4: return reservation.getBookTitle();
-                case 5: return reservation.getReservationDate();
-                case 6: return reservation.getExpirationDate();
-                case 7: return reservation.getStatus();
+                //case 2: return reservation.getUsername();
+                case 2: return reservation.getBookId();
+                case 3: return reservation.getBookTitle();
+                case 4: return reservation.getReservationDate();
+                case 5: return reservation.getExpirationDate();
+                //case 7: return reservation.getStatus();
                 default: return null;
             }
         }

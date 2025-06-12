@@ -161,7 +161,7 @@ public class ReturnManagementPanel extends JPanel {
     // 加载所有未归还的借阅记录
     private void loadBorrowedRecords() throws SQLException {
         modelRecords.setRowCount(0); // 清空表格
-        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.available=0 order by B.start_date";
+        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,B.is_ret from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where B.is_ret=0 order by B.start_date";
         m_query.mysqlConnect();
         ResultSet rset = m_query.selectQuery(1, new String[]{sql});
         while (rset.next()) {
@@ -196,7 +196,7 @@ public class ReturnManagementPanel extends JPanel {
             loadBorrowedRecords(); // 关键词为空时加载全部
             return;
         }
-        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.available=0 and B.id like ? or B.bid like ? or B.uid like ? or A.bname like ? order by B.start_date";
+        String sql = "select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.is_ret from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where A.is_ret=0 and B.id like ? or B.bid like ? or B.uid like ? or A.bname like ? order by B.start_date";
         m_query.mysqlConnect();
         String param = "%" + keyword + "%";
         ResultSet rset = m_query.selectQuery(5, new String[]{sql, param, param, param, param});

@@ -5,27 +5,33 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.Calendar;
+import java.util.Locale;
 
 public class MyBorrowPanel extends JPanel {
     private JTable borrowTable;
     private DefaultTableModel tableModel;
     private JButton renewButton;
+    //private Connection conn;
     private JButton returnButton; // 新增归还按钮
     private JLabel statusLabel;
-    private Connection conn;
     private String currentUsername;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    private SqlQuery m_query;
 
-    public MyBorrowPanel(Connection conn, String username) {
-        this.conn = conn;
+
+    public MyBorrowPanel(SqlQuery query, String username) throws SQLException {
+        System.out.println("username:"+username);
+        m_query=query;
+        //this.conn=conn;
         this.currentUsername = username;
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
         initializeComponents();
-        loadBorrowData();
+        loadBorrowData(username);
     }
 
     private void initializeComponents() {
@@ -54,7 +60,7 @@ public class MyBorrowPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // 表格
-        String[] columnNames = {"图书ID", "书名", "作者", "出版社", "借阅日期", "应还日期", "状态"};
+        String[] columnNames = {"图书ID", "书名", "作者", "出版社", "借阅日期", "应还日期"};
         tableModel = new DefaultTableModel(columnNames, 0);
         borrowTable = new JTable(tableModel);
         borrowTable.setFont(new Font("微软雅黑", Font.PLAIN, 14));
@@ -72,46 +78,26 @@ public class MyBorrowPanel extends JPanel {
         add(statusLabel, BorderLayout.SOUTH);
     }
 
-    private void loadBorrowData() {
+    private void loadBorrowData(String username) throws SQLException {
         tableModel.setRowCount(0);
-
-        try {
-            String sql = "SELECT b.book_id, b.title, b.author, b.publisher, " +
-                    "l.borrow_date, l.due_date, " +
-                    "CASE WHEN l.return_date IS NULL THEN '未归还' ELSE '已归还' END AS status " +
-                    "FROM borrow_records l " +
-                    "JOIN books b ON l.book_id = b.book_id " +
-                    "WHERE l.user_id = ? AND l.return_date IS NULL";
-
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, currentUsername);
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                Object[] row = new Object[7];
-                row[0] = rs.getString("book_id");
-                row[1] = rs.getString("title");
-                row[2] = rs.getString("author");
-                row[3] = rs.getString("publisher");
-                row[4] = dateFormat.format(rs.getDate("borrow_date"));
-                row[5] = dateFormat.format(rs.getDate("due_date"));
-                row[6] = rs.getString("status");
-
-                tableModel.addRow(row);
-            }
-
-            rs.close();
-            pstmt.close();
-
-            if (tableModel.getRowCount() == 0) {
-                statusLabel.setText("当前没有借阅记录");
-            } else {
-                statusLabel.setText("共 " + tableModel.getRowCount() + " 条借阅记录");
-            }
-
-        } catch (SQLException e) {
-            statusLabel.setText("加载借阅数据失败: " + e.getMessage());
-            e.printStackTrace();
+        String sql="select A.is_ret,A.start_date,A.end_date,A.practical_date,B.bid,B.bname,B.publisher,B.author from borrow_relation as A inner join bookinfo as B on A.bid=B.bid where A.uid=? and A.is_ret=0 and A.practical_date is null";
+        m_query.mysqlConnect();
+        ResultSet rset=m_query.selectQuery(2,new String[]{sql,username});
+        while (rset.next()) {
+            Object[] row = new Object[7];
+            row[0] = rset.getString("bid");
+            row[1] = rset.getString("bname");
+            row[2] = rset.getString("author");
+            row[3] = rset.getString("publisher");
+            row[4] = dateFormat.format(rset.getDate("start_date"));
+            row[5] = dateFormat.format(rset.getDate("end_date"));
+            tableModel.addRow(row);
+        }
+        m_query.mysqlDisconnect();
+        if (tableModel.getRowCount() == 0) {
+            statusLabel.setText("当前没有借阅记录");
+        } else {
+            statusLabel.setText("共 " + tableModel.getRowCount() + " 条借阅记录");
         }
     }
 
@@ -152,7 +138,22 @@ public class MyBorrowPanel extends JPanel {
                     String newDueDateStr = dateFormat.format(newDueDate);
 
                     // 更新数据库
-                    String sql = "UPDATE borrow_records SET due_date = ?, renew_count = renew_count + 1 " +
+                    String sql="update borrow_relation set end_date=? where uid=? and bid=? and practical_date is null";
+                    m_query.mysqlConnect();
+                    int affectRows=m_query.updateQuery(4,new String[]{sql,newDueDateStr,currentUsername,bookId});
+                    if (affectRows > 0) {
+                        // 更新表格
+                        tableModel.setValueAt(newDueDateStr, selectedRow, 5);
+                        statusLabel.setText("续借成功，新的应还日期: " + newDueDateStr);
+                        JOptionPane.showMessageDialog(MyBorrowPanel.this,
+                                "续借成功！新的应还日期为: " + newDueDateStr,
+                                "成功", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        statusLabel.setText("续借失败");
+                        JOptionPane.showMessageDialog(MyBorrowPanel.this,
+                                "续借失败，请稍后重试", "错误", JOptionPane.ERROR_MESSAGE);
+                    }
+                    /*String sql = "UPDATE borrow_records SET due_date = ?, renew_count = renew_count + 1 " +
                             "WHERE user_id = ? AND book_id = ? AND return_date IS NULL";
 
                     PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -174,7 +175,7 @@ public class MyBorrowPanel extends JPanel {
                         statusLabel.setText("续借失败");
                         JOptionPane.showMessageDialog(MyBorrowPanel.this,
                                 "续借失败，请稍后重试", "错误", JOptionPane.ERROR_MESSAGE);
-                    }
+                    }*/
                 }
             } catch (Exception ex) {
                 statusLabel.setText("续借操作失败: " + ex.getMessage());
@@ -224,7 +225,33 @@ public class MyBorrowPanel extends JPanel {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     // 更新借阅记录，设置归还日期为当前日期
-                    String sql = "UPDATE borrow_records SET return_date = ? " +
+                    String sql="update borrow_relation set practical_date=?,is_ret=1 where uid=? and bid=? and practical_date is null";
+                    m_query.mysqlConnect();
+                    Date a=new java.sql.Date(today.getTime());
+                    int affectRows=m_query.updateQuery(4,new String[]{sql,a.toString(),currentUsername,bookId});
+                    if (affectRows > 0) {
+                        // 更新表格中的状态为"已归还"
+                        tableModel.setValueAt("已归还", selectedRow, 6);
+                        statusLabel.setText("图书归还成功！");
+
+                        // 如果有逾期，提示可能的罚款
+                        if (daysLate > 0) {
+                            JOptionPane.showMessageDialog(MyBorrowPanel.this,
+                                    "图书已成功归还，但已逾期 " + daysLate + " 天。\n" +
+                                            "请联系管理员处理可能的罚款事宜。",
+                                    "归还成功", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(MyBorrowPanel.this,
+                                    "图书已成功归还，感谢您的配合！",
+                                    "归还成功", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } else {
+                        statusLabel.setText("图书归还失败");
+                        JOptionPane.showMessageDialog(MyBorrowPanel.this,
+                                "归还失败，请稍后重试", "错误", JOptionPane.ERROR_MESSAGE);
+                    }
+
+                    /*String sql = "UPDATE borrow_records SET return_date = ? " +
                             "WHERE user_id = ? AND book_id = ? AND return_date IS NULL";
 
                     PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -255,7 +282,7 @@ public class MyBorrowPanel extends JPanel {
                         statusLabel.setText("图书归还失败");
                         JOptionPane.showMessageDialog(MyBorrowPanel.this,
                                 "归还失败，请稍后重试", "错误", JOptionPane.ERROR_MESSAGE);
-                    }
+                    }*/
                 }
             } catch (Exception ex) {
                 statusLabel.setText("归还操作失败: " + ex.getMessage());

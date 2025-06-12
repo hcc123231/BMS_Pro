@@ -314,7 +314,7 @@ public class BorrowManagementPanel extends JPanel {
     // 加载所有借阅记录
     private void loadHistory() throws SQLException {
         modelHistory.setRowCount(0); // 清空表格
-        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid order by B.start_date";
+        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,B.is_ret,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid order by B.start_date";
         m_query.mysqlConnect();
         ResultSet rset=m_query.selectQuery(1,new String[]{sql});
 
@@ -330,7 +330,7 @@ public class BorrowManagementPanel extends JPanel {
                     rset.getString("start_date"),
                     rset.getString("end_date"),
                     rset.getString("practical_date"),
-                    rset.getInt("available")==1?"可借阅":"已借出",
+                    rset.getInt("is_ret")==1?"已归还":"未归还",
                     "000"
             });
         }
@@ -349,7 +349,7 @@ public class BorrowManagementPanel extends JPanel {
             return;
         }
         String param="%"+keyword+"%";
-        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where B.uid like ? or A.bname like ? or B.bid like ? order by B.start_date";
+        String sql="select B.id,B.bid,B.uid,B.start_date,B.end_date,B.practical_date,B.is_ret,A.bname,A.available from bookinfo as A inner join borrow_relation as B on A.bid=B.bid where B.uid like ? or A.bname like ? or B.bid like ? order by B.start_date";
         m_query.mysqlConnect();
         ResultSet rset=m_query.selectQuery(4,new String[]{sql,param,param,param});
         while (rset.next()) {
@@ -361,7 +361,7 @@ public class BorrowManagementPanel extends JPanel {
                     rset.getString("start_date"),
                     rset.getString("end_date"),
                     rset.getString("practical_date"),
-                    rset.getInt("available")==1?"可借阅":"已借出",
+                    rset.getInt("is_ret")==1?"已归还":"未归还",
                     "000"
             });
         }

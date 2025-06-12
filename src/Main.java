@@ -11,6 +11,8 @@ public class Main {
         //首先将登录界面显示出来
         BmsLogin login=new BmsLogin();
         SqlQuery query=new SqlQuery();
+        //ret[1]存储account
+        String ret[]=new String[2];
         //点击登录触发登录事件
         login.btnLogin.addActionListener(new ActionListener() {
             @Override
@@ -26,7 +28,7 @@ public class Main {
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);
                 }
-                String ret[]=new String[2];
+
                 try {
                     if(set.next()){
                         ret[0]=set.getString("account");

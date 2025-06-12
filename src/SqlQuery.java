@@ -46,7 +46,7 @@ public class SqlQuery {
             m_conn.setAutoCommit(false);
             //检查记录状态
             //先到borrow_relation中得到bid
-            String sql="select bid,end_date from borrow_relation where id=?";
+            String sql="select bid,end_date,is_ret from borrow_relation where id=?";
             PreparedStatement pstmt1=m_conn.prepareStatement(sql);
             pstmt1.setString(1,id);
             ResultSet rset=pstmt1.executeQuery();
@@ -57,10 +57,11 @@ public class SqlQuery {
             }
             int bookId=rset.getInt("bid");
             Date endDate=rset.getDate("end_date");
+            int is_ret=rset.getInt("is_ret");
             rset.close();
             pstmt1.close();
             //然后拿bid去bookinfo中找到available的值再进行下一步的状态检查
-            sql="select available,bname,author from bookinfo where bid=?";
+            sql="select bname,author from bookinfo where bid=?";
             PreparedStatement pstmt2=m_conn.prepareStatement(sql);
             pstmt2.setInt(1,bookId);
             ResultSet rset2=pstmt2.executeQuery();
@@ -69,13 +70,13 @@ public class SqlQuery {
                 pstmt2.close();
                 throw new SQLException("未找到该条记录");
             }
-            int status=rset2.getInt("available");
+            //int status=rset2.getInt("available");
             String bookName=rset2.getString("bname");
             String bauthor=rset2.getString("author");
             rset2.close();
             pstmt2.close();
             //计算罚金
-            if(status==1){
+            if(is_ret==1){
                 throw new SQLException("该书已归还");
             }
             LocalDate endLocalDate=endDate.toLocalDate();
@@ -83,7 +84,7 @@ public class SqlQuery {
             long overdueDays = ChronoUnit.DAYS.between(endLocalDate, currentLocalDate);
             long fineValue=overdueDays>0?overdueDays:0;
             //更新借阅记录
-            sql="update borrow_relation set fine=?,practical_date=?";
+            sql="update borrow_relation set fine=?,practical_date=?,is_ret=1";
             PreparedStatement pstmt3=m_conn.prepareStatement(sql);
             pstmt3.setLong(1,fineValue);
             pstmt3.setString(2,retDate);

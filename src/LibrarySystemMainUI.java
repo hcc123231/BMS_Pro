@@ -12,6 +12,7 @@ public class LibrarySystemMainUI extends JFrame {
     private User currentUser;
     //private Connection conn;
     private SqlQuery m_query;
+    String userName;
     private static final Logger logger = Logger.getLogger(LibrarySystemMainUI.class.getName());
     private BookManagerPanel bookManagerPanel; // 添加对图书管理面板的引用
     private BookEntryPanel bookEntryPanel;
@@ -21,9 +22,15 @@ public class LibrarySystemMainUI extends JFrame {
     private UserManagementPanel userManagementPanel;
     private StatsAnalysisPanel statsAnalysisPanel;
     private BookSearchPanel bookSearchPanel;
+    private MyBorrowPanel myBorrowPanel;
+    private MyReservationsPanel myReservationsPanel;
+    private UserInfoPanel userInfoPanel;
+    private ChangePasswordPanel changePasswordPanel;
+
 
     public LibrarySystemMainUI(String username, String role,SqlQuery query) {
         setTitle("校园图书管理系统");
+        userName=username;
         setSize(1280, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -213,7 +220,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("预约管理".equals(functionName)){
             System.out.println("预约管理 clicked");
             if(reservationManagerPanel==null){
-                reservationManagerPanel=new ReservationManagerPanel(m_query.m_conn);
+                reservationManagerPanel=new ReservationManagerPanel(m_query);
                 reservationManagerPanel.setVisible(true);
             }
             return reservationManagerPanel;
@@ -242,6 +249,23 @@ public class LibrarySystemMainUI extends JFrame {
             }
             return bookSearchPanel;
         }
+        else if("我的借阅".equals(functionName)){
+            System.out.println("我的借阅 clicked");
+            if(myBorrowPanel==null){
+                myBorrowPanel=new MyBorrowPanel(m_query,userName);
+                myBorrowPanel.setVisible(true);
+            }
+            return myBorrowPanel;
+        }
+        else if("我的预约".equals(functionName)){
+            System.out.println("我的预约 clicked");
+            if(myReservationsPanel==null){
+                myReservationsPanel=new MyReservationsPanel(m_query,userName);
+                myReservationsPanel.setVisible(true);
+            }
+            return myReservationsPanel;
+        }
+
 
 
         // 其他功能的默认面板
