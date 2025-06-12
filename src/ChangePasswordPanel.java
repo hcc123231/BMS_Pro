@@ -1,3 +1,5 @@
+import com.mysql.cj.exceptions.StreamingNotifiable;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -9,14 +11,15 @@ import java.sql.SQLException;
 import java.sql.DriverManager;
 
 public class ChangePasswordPanel extends JPanel {
-    private Connection conn;
+
     private int currentUserId;
     private JPasswordField oldPasswordField;
     private JPasswordField newPasswordField;
     private JPasswordField confirmPasswordField;
+    private SqlQuery m_query;
 
-    public ChangePasswordPanel(Connection conn, int userId) {
-        this.conn = conn;
+    public ChangePasswordPanel(SqlQuery query, int userId) {
+        m_query = query;
         this.currentUserId = userId;
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -150,55 +153,25 @@ public class ChangePasswordPanel extends JPanel {
     }
 
     private boolean validateOldPassword(String password) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM users WHERE user_id = ? AND password = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, currentUserId);
-            pstmt.setString(2, password);
-            ResultSet rs = pstmt.executeQuery();
-            rs.next();
-            return rs.getInt(1) > 0;
-        }
+        String sql = "SELECT COUNT(*) FROM user WHERE account = ? AND password = ?";
+        m_query.mysqlConnect();
+        ResultSet rset = m_query.selectQuery(3, new String[]{sql, String.valueOf(currentUserId), password});
+        rset.next();
+        return rset.getInt(1) > 0;
+
     }
 
     private void updatePassword(String newPassword) throws SQLException {
-        String sql = "UPDATE users SET password = ? WHERE user_id = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, newPassword);
-            pstmt.setInt(2, currentUserId);
-            pstmt.executeUpdate();
-        }
+        String sql = "UPDATE user SET password = ? WHERE account = ?";
+        m_query.mysqlConnect();
+        int affectedRows = m_query.updateQuery(3, new String[]{sql, newPassword, String.valueOf(currentUserId)});
+
+
     }
 
     private void resetFields() {
         oldPasswordField.setText("");
         newPasswordField.setText("");
         confirmPasswordField.setText("");
-    }
-    // 新增主函数
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                // 建立数据库连接，这里需要根据实际情况修改数据库连接信息
-                String jdbcUrl = "jdbc:mysql://localhost:3306/bms_db";
-                String dbUsername = "root";
-                String dbPassword = "xxh20050802zly";
-                Connection conn = DriverManager.getConnection(jdbcUrl, dbUsername, dbPassword);
-
-                // 假设用户 ID 为 1
-                int userId = 1;
-                ChangePasswordPanel panel = new ChangePasswordPanel(conn, userId);
-
-                // 创建主窗口
-                JFrame frame = new JFrame("修改密码测试");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setSize(600, 400);
-                frame.setLocationRelativeTo(null);
-                frame.add(panel);
-                frame.setVisible(true);
-            } catch (SQLException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(null, "数据库连接失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-            }
-        });
     }
 }

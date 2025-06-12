@@ -1,14 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import javax.swing.table.DefaultTableModel;
 
 public class UserInfoPanel extends JPanel {
-    private Connection conn;
+
     private String currentUsername;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -18,9 +15,9 @@ public class UserInfoPanel extends JPanel {
     private JLabel currentBorrowLabel;
     private JLabel overdueCountLabel;
     private DefaultTableModel borrowTableModel;
-
-    public UserInfoPanel(Connection conn, String username) {
-        this.conn = conn;
+    private SqlQuery m_query;
+    public UserInfoPanel(SqlQuery query, String username) {
+        m_query=query;
         this.currentUsername = username;
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -148,7 +145,63 @@ public class UserInfoPanel extends JPanel {
     }
 
     private void loadUserInfo() {
+
+        try{
+            String sql="select count(id) as cnt from borrow_relation where uid=? and end_date>current_date and practical_date is null";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,currentUsername});
+            if(rset.next()){
+
+                currentBorrowLabel.setText(String.valueOf(rset.getInt("cnt")));
+            }
+            m_query.mysqlDisconnect();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        try{
+            String sql="select * from user where account=?";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,currentUsername});
+            if (rset.next()) {
+                usernameLabel.setText(rset.getString("account"));
+                System.out.println("user info :"+rset.getString("account"));
+                registerDateLabel.setText(dateFormat.format(rset.getDate("created")));
+
+            }
+            m_query.mysqlDisconnect();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        //计算逾期图书数量
         try {
+            String sql="select count(id) as cnt from borrow_relation where uid=? and end_date<current_date and practical_date is null";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,currentUsername});
+            if(rset.next()){
+                overdueCountLabel.setText(String.valueOf(rset.getInt("cnt")));
+            }
+            m_query.mysqlDisconnect();
+        }catch (SQLException e){
+            throw new RuntimeException(e);
+        }
+        // 加载最近借阅记录（最多5条）
+        try{
+            String sql="select B.bname,A.start_date,A.end_date from borrow_relation as A inner join bookinfo as B on A.bid=B.bid where A.uid=? order by start_date limit 5 offset 0";
+            m_query.mysqlConnect();
+            ResultSet rset=m_query.selectQuery(2,new String[]{sql,currentUsername});
+            borrowTableModel.setRowCount(0);
+            while (rset.next()) {
+                Object[] row = new Object[3];
+                row[0] = rset.getString("bname");
+                row[1] = dateFormat.format(rset.getDate("start_date"));
+                row[2] = dateFormat.format(rset.getDate("end_date"));
+                borrowTableModel.addRow(row);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        /*try {
             // 加载用户基本信息
             String userSql = "SELECT user_id, register_date, current_borrow " +
                     "FROM users WHERE user_id = ?";
@@ -203,6 +256,6 @@ public class UserInfoPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "加载个人信息失败: " + e.getMessage(),
                     "错误", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-        }
+        }*/
     }
 }

@@ -244,7 +244,7 @@ public class LibrarySystemMainUI extends JFrame {
         else if("图书检索".equals(functionName)){
             System.out.println("图书检索 clicked");
             if(bookSearchPanel==null){
-                bookSearchPanel=new BookSearchPanel(this);
+                bookSearchPanel=new BookSearchPanel(this,m_query);
                 bookSearchPanel.setVisible(true);
             }
             return bookSearchPanel;
@@ -264,6 +264,22 @@ public class LibrarySystemMainUI extends JFrame {
                 myReservationsPanel.setVisible(true);
             }
             return myReservationsPanel;
+        }
+        else if("个人信息".equals(functionName)){
+            System.out.println("个人信息 clicked");
+            if(userInfoPanel==null){
+                userInfoPanel=new UserInfoPanel(m_query,userName);
+                userInfoPanel.setVisible(true);
+            }
+            return userInfoPanel;
+        }
+        else if("修改密码".equals(functionName)){
+            System.out.println("修改密码 clicked");
+            if(changePasswordPanel==null){
+                changePasswordPanel=new ChangePasswordPanel(m_query,Integer.parseInt(userName));
+                changePasswordPanel.setVisible(true);
+            }
+            return changePasswordPanel;
         }
 
 
