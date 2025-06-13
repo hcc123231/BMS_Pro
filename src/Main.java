@@ -33,22 +33,25 @@ public class Main {
                     if(set.next()){
                         ret[0]=set.getString("account");
                         ret[1]=set.getString("chara");
-                    if(ret==null){
+
+                        /*if(ret.length()<=0){
+                            JOptionPane.showMessageDialog(login.frmGlobal,"登录失败：账号或密码错误",null,JOptionPane.ERROR_MESSAGE);
+                        }*/
+                        {
+                            LibrarySystemMainUI mainUi=new LibrarySystemMainUI(ret[0],ret[1],query);
+                            mainUi.logoutButton.addActionListener(new ActionListener() {
+                                @Override
+                                public void actionPerformed(ActionEvent e) {
+                                    mainUi.dispose();
+                                    login.frmGlobal.setVisible(true);
+                                }
+                            });
+                            login.frmGlobal.setVisible(false);
+                            mainUi.setVisible(true);
+                        }
+                    }else{
                         JOptionPane.showMessageDialog(login.frmGlobal,"登录失败：账号或密码错误",null,JOptionPane.ERROR_MESSAGE);
                     }
-                    else{
-                        LibrarySystemMainUI mainUi=new LibrarySystemMainUI(ret[0],ret[1],query);
-                        mainUi.logoutButton.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                mainUi.dispose();
-                                login.frmGlobal.setVisible(true);
-                            }
-                        });
-                        login.frmGlobal.setVisible(false);
-                        mainUi.setVisible(true);
-                    }
-                }
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);
                 }
